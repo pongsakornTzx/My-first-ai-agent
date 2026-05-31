@@ -17,6 +17,9 @@ permissions:
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -40,7 +43,7 @@ jobs:
         run: |
           python scripts/fetch_set_data.py
 
-      - name: Commit and push updated index.html
+      - name: Commit updated index.html back to repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -51,3 +54,12 @@ jobs:
             git commit -m "auto: update SET dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
             git push
           fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
