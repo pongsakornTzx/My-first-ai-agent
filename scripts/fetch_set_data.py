@@ -185,26 +185,149 @@ def generate_signals(data: dict) -> dict:
 
     return {"signals": signals, "score": score, "verdict": verdict, "verdict_class": vc}
 
-def ai_summary(ticker: str, name: str, data: dict, sig: dict) -> str:
-    price = data["price"]
-    change_pct = data["change_pct"]
-    rsi = data["rsi"]
+def ai_summary(ticker: str, name: str, data: dict, sig: dict, sector: str = "") -> dict:
+    """3-layer analysis: Macro · Company · Price → Signal + reasons + risk alert."""
+    price     = data["price"]
+    change_pct= data["change_pct"]
+    rsi       = data["rsi"]
     vol_ratio = data["volume_ratio"]
-    momentum = data["momentum_10d"]
-    score = sig["score"]
-    direction = "บวก" if change_pct >= 0 else "ลบ"
-    trend = "ขาขึ้น" if score > 0 else ("ขาลง" if score < 0 else "ทรงตัว")
-    vol_desc = "สูงมาก" if vol_ratio > 2 else ("สูง" if vol_ratio > 1.5 else "ปกติ")
-    rsi_desc = "Oversold" if rsi < 30 else ("Overbought" if rsi > 70 else "กลาง")
-    mom_desc = f"+{abs(momentum):.1f}%" if momentum > 0 else f"-{abs(momentum):.1f}%"
-    bulls = sum(1 for s in sig["signals"] if s["type"] == "bullish")
-    bears = sum(1 for s in sig["signals"] if s["type"] == "bearish")
-    return (
-        f"<strong>{ticker} ({name})</strong> {price:.2f}฿ เปลี่ยนแปลง{direction} {abs(change_pct):.2f}% "
-        f"ภาพรวม<strong>{trend}</strong> — {bulls}↑ {bears}↓ สัญญาณ "
-        f"RSI {rsi} ({rsi_desc}) · ปริมาณ{vol_desc} {vol_ratio}x · โมเมนตัม {mom_desc} "
-        f"<strong>→ {sig['verdict']}</strong>"
-    )
+    momentum  = data["momentum_10d"]
+    ma20      = data["ma20"]
+    ma50      = data["ma50"]
+    bb_upper  = data["bb_upper"]
+    bb_lower  = data["bb_lower"]
+    bb_mid    = data["bb_mid"]
+    macd_hist = data["macd_histogram"]
+    score     = sig["score"]
+    verdict   = sig["verdict"]
+    vc        = sig["verdict_class"]
+
+    # ── LAYER 1: MACRO (fund flow + sector context + trend) ──────
+    macro_score = 0
+    macro_notes = []
+    SECTOR_MACRO = {
+        "พลังงาน":         "ราคาน้ำมันโลกและนโยบาย OPEC",
+        "การเงิน":         "นโยบายดอกเบี้ย BOT / กำไรสุทธิ NIM",
+        "คมนาคม":          "การฟื้นตัวของการท่องเที่ยวและผู้โดยสาร",
+        "โทรคมนาคม":       "นโยบาย 5G และการแข่งขันในตลาด",
+        "อสังหาริมทรัพย์":  "อัตราดอกเบี้ยและกำลังซื้อผู้บริโภค",
+        "สุขภาพ":          "งบประมาณสาธารณสุขและ Medical Tourism",
+        "พาณิชย์":         "กำลังซื้อในประเทศและ Consumer Confidence",
+        "พลังงานทดแทน":    "นโยบาย EV และเป้าหมาย Net Zero",
+    }
+    if sector in SECTOR_MACRO:
+        macro_notes.append(f"Sensitivity: {SECTOR_MACRO[sector]}")
+    if vol_ratio > 2.0:
+        macro_score += 1
+        macro_notes.append(f"Fund Flow สัญญาณเข้า — Volume {vol_ratio}x เหนือค่าเฉลี่ย")
+    elif vol_ratio < 0.6:
+        macro_score -= 1
+        macro_notes.append(f"Fund Flow อ่อนแอ — Volume {vol_ratio}x ต่ำกว่าปกติ")
+    if price > ma50 * 1.05:
+        macro_score += 1
+        macro_notes.append(f"ราคา +{((price/ma50-1)*100):.1f}% เหนือ MA50 — cycle ระยะกลางเป็นบวก")
+    elif price < ma50 * 0.95:
+        macro_score -= 1
+        macro_notes.append(f"ราคา -{((1-price/ma50)*100):.1f}% ต่ำกว่า MA50 — cycle ระยะกลางเป็นลบ")
+    macro_signal = "positive" if macro_score > 0 else ("negative" if macro_score < 0 else "neutral")
+
+    # ── LAYER 2: COMPANY (momentum + valuation proxy) ────────────
+    company_score = 0
+    company_notes = []
+    if momentum > 5:
+        company_score += 2
+        company_notes.append(f"Momentum +{momentum:.1f}% (10d) — สะท้อนผลประกอบการ/ข่าวบวก")
+    elif momentum > 2:
+        company_score += 1
+        company_notes.append(f"Momentum +{momentum:.1f}% (10d) — ทิศทางราคาเชิงบวก")
+    elif momentum < -5:
+        company_score -= 2
+        company_notes.append(f"Momentum {momentum:.1f}% (10d) — สะท้อนแรงขาย/ข่าวลบ")
+    elif momentum < -2:
+        company_score -= 1
+        company_notes.append(f"Momentum {momentum:.1f}% (10d) — ทิศทางราคาเชิงลบ")
+    premium = (price / ma50 - 1) * 100
+    if premium > 15:
+        company_score -= 1
+        company_notes.append(f"Premium เหนือ MA50 {premium:.1f}% — ระวัง Overvalued ระยะสั้น")
+    elif premium < -15:
+        company_score += 1
+        company_notes.append(f"Discount ต่ำกว่า MA50 {abs(premium):.1f}% — อาจ Undervalued")
+    elif -5 <= premium <= 5:
+        company_notes.append(f"ราคาใกล้ Fair Value (MA50 ±5%)")
+    company_signal = "positive" if company_score > 0 else ("negative" if company_score < 0 else "neutral")
+
+    # ── LAYER 3: PRICE (technical) ───────────────────────────────
+    price_notes = []
+    if rsi < 30:
+        price_notes.append(f"RSI {rsi} — Oversold โซนซื้อทางเทคนิค")
+    elif rsi > 70:
+        price_notes.append(f"RSI {rsi} — Overbought โซนระวังแรงขาย")
+    else:
+        price_notes.append(f"RSI {rsi} — Neutral ไม่ extreme")
+    if macd_hist > 0:
+        price_notes.append("MACD Histogram บวก — Upward Momentum")
+    else:
+        price_notes.append("MACD Histogram ลบ — Downward Momentum")
+    bb_pct = round((price - bb_lower) / (bb_upper - bb_lower) * 100) if bb_upper != bb_lower else 50
+    if bb_pct <= 20:
+        price_notes.append(f"BB Position {bb_pct}% — ใกล้ Lower Band (Support)")
+    elif bb_pct >= 80:
+        price_notes.append(f"BB Position {bb_pct}% — ใกล้ Upper Band (Resistance)")
+    else:
+        price_notes.append(f"BB Position {bb_pct}% — กลาง Band")
+    price_signal = "bullish" if score > 0 else ("bearish" if score < 0 else "neutral")
+
+    # ── REASONS (2-4) ────────────────────────────────────────────
+    reasons = []
+    if rsi < 30:
+        reasons.append(f"RSI {rsi} Oversold — โอกาส Rebound ระยะสั้น")
+    elif rsi > 70:
+        reasons.append(f"RSI {rsi} Overbought — ความเสี่ยงปรับฐาน")
+    if macd_hist > 0 and momentum > 2:
+        reasons.append(f"MACD บวก + Momentum +{momentum:.1f}% — Uptrend ต่อเนื่อง")
+    elif macd_hist < 0 and momentum < -2:
+        reasons.append(f"MACD ลบ + Momentum {momentum:.1f}% — Downtrend ต่อเนื่อง")
+    if ma20 > ma50 and price > ma20:
+        reasons.append("ราคา > MA20 > MA50 — โครงสร้าง Uptrend ชัดเจน")
+    elif ma20 < ma50 and price < ma20:
+        reasons.append("ราคา < MA20 < MA50 — โครงสร้าง Downtrend")
+    if vol_ratio > 2.0:
+        reasons.append(f"Volume {vol_ratio}x — {'แรงซื้อ' if momentum > 0 else 'แรงขาย'} + Volume ยืนยัน")
+    if price <= bb_lower:
+        reasons.append("ราคาแตะ BB Lower Band — โซน Oversold เทคนิค")
+    elif price >= bb_upper:
+        reasons.append("ราคาแตะ BB Upper Band — โซน Overbought เทคนิค")
+    if not reasons:
+        reasons.append(f"Signal Score {'+' if score>=0 else ''}{score} — {'ภาพรวมบวก' if score>0 else ('ภาพรวมลบ' if score<0 else 'ทรงตัว รอสัญญาณ')}")
+    reasons = reasons[:4]
+
+    # ── RISK ALERT ───────────────────────────────────────────────
+    risks = []
+    if rsi > 75:
+        risks.append(f"RSI {rsi} สูงมาก — ระวัง Pullback")
+    if rsi < 25:
+        risks.append(f"RSI {rsi} ต่ำมาก — ระวัง Breakdown ต่อ")
+    if vol_ratio > 3.0:
+        risks.append(f"Volume {vol_ratio}x ผิดปกติ — ความผันผวนสูง")
+    if abs(momentum) > 10:
+        risks.append(f"Momentum {'+' if momentum>0 else ''}{momentum:.1f}% — อาจ Overextended")
+    if ma20 < ma50 and price < ma20:
+        risks.append("Double MA Bearish Cross — Downtrend ระยะกลาง")
+    if abs(change_pct) > 5:
+        risks.append(f"ราคาเปลี่ยนแปลง {'+' if change_pct>0 else ''}{change_pct:.1f}% วันนี้ — Gap สูง")
+    risk_alert = " · ".join(risks) if risks else None
+
+    return {
+        "macro":   {"signal": macro_signal,   "notes": macro_notes[:2]},
+        "company": {"signal": company_signal, "notes": company_notes[:2]},
+        "price":   {"signal": price_signal,   "notes": price_notes[:3]},
+        "signal":  verdict,
+        "verdict_class": vc,
+        "score":   score,
+        "reasons": reasons,
+        "risk_alert": risk_alert,
+    }
 
 # ============================================================
 # DATA FETCHERS
@@ -513,6 +636,17 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 .signal-badge{{font-size:.6rem;padding:.15rem .4rem;border-radius:3px;font-weight:600;white-space:nowrap;cursor:default;}}
 .verdict-box{{border-radius:6px;padding:.45rem .8rem;text-align:center;font-weight:700;font-size:.82rem;margin:.4rem 0;}}
 .ai-summary{{font-size:.72rem;color:#94a3b8;line-height:1.55;background:var(--surface2);border-radius:6px;padding:.6rem;border-left:2px solid var(--accent);margin-top:.4rem;}}
+.layer-row{{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.4rem;}}
+.layer-badge{{display:inline-flex;align-items:center;gap:.25rem;border-radius:4px;padding:.15rem .45rem;font-size:.65rem;font-weight:700;border:1px solid;}}
+.layer-pos{{background:#052e16;color:#22c55e;border-color:#16a34a;}}
+.layer-neg{{background:#2d0a0a;color:#f87171;border-color:#991b1b;}}
+.layer-neu{{background:#1c1917;color:#9ca3af;border-color:#374151;}}
+.layer-bul{{background:#052e16;color:#22c55e;border-color:#16a34a;}}
+.layer-bea{{background:#2d0a0a;color:#f87171;border-color:#991b1b;}}
+.reasons-list{{list-style:none;padding:0;margin:.3rem 0 0;display:flex;flex-direction:column;gap:.2rem;}}
+.reasons-list li{{font-size:.7rem;color:#cbd5e1;padding:.15rem 0;}}
+.risk-alert{{margin-top:.35rem;padding:.25rem .5rem;background:#2d1a00;border:1px solid #92400e;border-radius:4px;font-size:.67rem;color:#fb923c;}}
+.data-disclaimer{{margin-top:.3rem;font-size:.62rem;color:#4b5563;font-style:italic;}}
 
 /* ── CHART PANEL ── */
 .chart-panel{{padding:1rem;display:flex;flex-direction:column;gap:.75rem;height:100%;overflow-y:auto;}}
@@ -530,7 +664,7 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 .chart-container{{position:relative;height:180px;}}
 .chart-loading{{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.82rem;}}
 .cp-signals{{display:flex;flex-wrap:wrap;gap:.3rem;}}
-.cp-summary{{font-size:.73rem;color:#94a3b8;line-height:1.6;background:var(--surface2);border-radius:6px;padding:.6rem;border-left:2px solid var(--accent);}}
+.cp-summary{{font-size:.73rem;color:#94a3b8;line-height:1.6;background:var(--surface2);border-radius:6px;padding:.75rem;border-left:2px solid var(--accent);}}
 .cp-indicators{{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}}
 
 /* ── ADD STOCK MODAL ── */
@@ -750,6 +884,54 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 const STOCKS_INITIAL = {stocks_json_str};
 const SECTOR_COLORS  = {json.dumps(SECTOR_COLORS, ensure_ascii=False)};
 
+// ── 3-LAYER SUMMARY RENDERER ─────────────────────────────────
+function layerClass(sig) {{
+  return {{positive:'layer-pos',negative:'layer-neg',neutral:'layer-neu',bullish:'layer-bul',bearish:'layer-bea'}}[sig]||'layer-neu';
+}}
+function layerLabel(sig) {{
+  return {{positive:'▲ บวก',negative:'▼ ลบ',neutral:'— ทรงตัว',bullish:'▲ Bullish',bearish:'▼ Bearish'}}[sig]||'—';
+}}
+function renderSummaryHTML(sm) {{
+  if (!sm || typeof sm !== 'object') return `<div class="ai-summary">${{sm||''}}</div>`;
+  const layers = [
+    ['🌍 Macro', sm.macro?.signal],
+    ['🏢 Company', sm.company?.signal],
+    ['📊 Price', sm.price?.signal],
+  ];
+  const layerBadges = layers.map(([lbl,sig]) =>
+    `<span class="layer-badge ${{layerClass(sig)}}">${{lbl}} ${{layerLabel(sig)}}</span>`
+  ).join('');
+  const reasons = (sm.reasons||[]).map(r => `<li>· ${{r}}</li>`).join('');
+  const risk = sm.risk_alert
+    ? `<div class="risk-alert">⚠️ Risk: ${{sm.risk_alert}}</div>` : '';
+  const disc = `<div class="data-disclaimer">ข้อมูลอาจล่าช้า/ประมาณการ อัปเดตทุก 15 นาที เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน</div>`;
+  return `<div class="ai-summary">
+    <div class="layer-row">${{layerBadges}}</div>
+    <ul class="reasons-list">${{reasons}}</ul>
+    ${{risk}}${{disc}}
+  </div>`;
+}}
+function renderCpSummaryHTML(sm, vcol) {{
+  if (!sm || typeof sm !== 'object') return `<div class="cp-summary" style="border-left-color:${{vcol}}">${{sm||''}}</div>`;
+  const layers = [
+    ['🌍 Macro', sm.macro?.signal],
+    ['🏢 Company', sm.company?.signal],
+    ['📊 Price', sm.price?.signal],
+  ];
+  const layerBadges = layers.map(([lbl,sig]) =>
+    `<span class="layer-badge ${{layerClass(sig)}}">${{lbl}} ${{layerLabel(sig)}}</span>`
+  ).join('');
+  const reasons = (sm.reasons||[]).map(r => `<li>· ${{r}}</li>`).join('');
+  const risk = sm.risk_alert
+    ? `<div class="risk-alert">⚠️ Risk: ${{sm.risk_alert}}</div>` : '';
+  const disc = `<div class="data-disclaimer">ข้อมูลใกล้เคียงเรียลไทม์ / อาจล่าช้า / ต้นแบบ อัปเดตทุก 15 นาที · ราคาอาจล่าช้า ไม่สมบูรณ์ หรือเปลี่ยนแปลงได้ · เพื่อการศึกษาและทดสอบตรรกะเท่านั้น ไม่ใช่คำแนะนำการลงทุน</div>`;
+  return `<div class="cp-summary" style="border-left-color:${{vcol}}">
+    <div class="layer-row">${{layerBadges}}</div>
+    <ul class="reasons-list">${{reasons}}</ul>
+    ${{risk}}${{disc}}
+  </div>`;
+}}
+
 // allStocks = single source of truth (server + custom mixed)
 let allStocks = [...STOCKS_INITIAL];
 
@@ -963,7 +1145,7 @@ function renderCards() {{
       </div>
       <div class="signals-row">${{badges}}</div>
       <div class="verdict-box" style="background:${{vbg}};border:1px solid ${{vborder}};color:${{vtext}}">${{s.verdict}} (score ${{s.score>=0?'+':''}}${{s.score}})</div>
-      <div class="ai-summary">${{s.summary}}</div>
+      ${{renderSummaryHTML(s.summary)}}
     </div>`;
   }}).join('');
 }}
@@ -1038,7 +1220,7 @@ function openChartPane(s) {{
       <div class="ohlc-item"><div class="ohlc-label">Vol Ratio</div><div class="ohlc-val">${{s.volume_ratio}}x</div></div>
       <div class="ohlc-item"><div class="ohlc-label">Mom 10d</div><div class="ohlc-val" style="color:${{s.momentum_10d>=0?'#22c55e':'#ef4444'}}">${{s.momentum_10d>=0?'+':''}}${{s.momentum_10d.toFixed(2)}}%</div></div>
     </div>
-    <div class="cp-summary" style="border-left-color:${{vcol}}">${{s.summary}}</div>
+    ${{renderCpSummaryHTML(s.summary, vcol)}}
   `;
 
   // 30-day history chart
@@ -1417,14 +1599,34 @@ async function fetchAndMergeCustomStock(ticker) {{
   let verdict='Hold', vc='hold';
   for(const[th,v,c] of vcMap){{if(score>=th){{verdict=v;vc=c;break;}}}}
 
-  const bulls=signals.filter(s=>s.type==='bullish').length;
-  const bears=signals.filter(s=>s.type==='bearish').length;
-  const trend=score>0?'ขาขึ้น':score<0?'ขาลง':'ทรงตัว';
-  const summary=`<strong>${{ticker}} (เพิ่มเอง)</strong> ${{price.toFixed(2)}}฿ `+
-    `เปลี่ยนแปลง${{changePct>=0?'บวก':'ลบ'}} ${{Math.abs(changePct).toFixed(2)}}% `+
-    `ภาพรวม<strong>${{trend}}</strong> — ${{bulls}}↑ ${{bears}}↓ `+
-    `RSI ${{rsi}} · Vol ${{volRatio}}x · Mom ${{mom10>=0?'+':''}}${{mom10}}% `+
-    `→ <strong>${{verdict}}</strong> (score ${{score>=0?'+':''}}${{score}})`;
+  // Build 3-layer summary object (mirrors Python ai_summary structure)
+  const maScore = (volRatio>2?1:volRatio<0.6?-1:0) + (price>ma50*1.05?1:price<ma50*0.95?-1:0);
+  const coScore = (mom10>5?2:mom10>2?1:mom10<-5?-2:mom10<-2?-1:0) + ((price/ma50-1)*100>15?-1:(price/ma50-1)*100<-15?1:0);
+  const prScore = score;
+  const maNote = volRatio>2?`Fund Flow เข้า — Volume ${{volRatio}}x`:`Volume ${{volRatio}}x`;
+  const coNote = mom10>2?`Momentum +${{mom10}}% (10d) — ทิศทางบวก`:mom10<-2?`Momentum ${{mom10}}% (10d) — ทิศทางลบ`:`Momentum ${{mom10>=0?'+':''}}${{mom10}}%`;
+  const prNote = rsi<30?`RSI ${{rsi}} Oversold`:rsi>70?`RSI ${{rsi}} Overbought`:`RSI ${{rsi}} Neutral`;
+  const reasons = [];
+  if(rsi<30) reasons.push(`RSI ${{rsi}} Oversold — โอกาส Rebound`);
+  else if(rsi>70) reasons.push(`RSI ${{rsi}} Overbought — ระวังปรับฐาน`);
+  if(macdHist>0 && mom10>2) reasons.push(`MACD บวก + Momentum +${{mom10}}% — Uptrend ต่อเนื่อง`);
+  else if(macdHist<0 && mom10<-2) reasons.push(`MACD ลบ + Momentum ${{mom10}}% — Downtrend ต่อเนื่อง`);
+  if(ma20>ma50 && price>ma20) reasons.push('ราคา > MA20 > MA50 — โครงสร้าง Uptrend');
+  else if(ma20<ma50 && price<ma20) reasons.push('ราคา < MA20 < MA50 — โครงสร้าง Downtrend');
+  if(volRatio>2) reasons.push(`Volume ${{volRatio}}x — ${{mom10>0?'แรงซื้อ':'แรงขาย'}} + Volume ยืนยัน`);
+  if(!reasons.length) reasons.push(`Signal Score ${{score>=0?'+':''}}${{score}} — ${{score>0?'ภาพรวมบวก':score<0?'ภาพรวมลบ':'ทรงตัว'}}`);
+  const risks=[];
+  if(rsi>75) risks.push(`RSI ${{rsi}} สูงมาก`);
+  if(volRatio>3) risks.push(`Volume ${{volRatio}}x ผิดปกติ`);
+  if(Math.abs(mom10)>10) risks.push(`Momentum ${{mom10>=0?'+':''}}${{mom10}}% Overextended`);
+  const summary = {{
+    macro:   {{signal: maScore>0?'positive':maScore<0?'negative':'neutral', notes:[maNote]}},
+    company: {{signal: coScore>0?'positive':coScore<0?'negative':'neutral', notes:[coNote]}},
+    price:   {{signal: prScore>0?'bullish':prScore<0?'bearish':'neutral',  notes:[prNote]}},
+    signal: verdict, verdict_class: vc, score,
+    reasons: reasons.slice(0,4),
+    risk_alert: risks.length?risks.join(' · '):null,
+  }};
 
   const stockData = {{
     ticker, name:ticker, sector: sector || 'อื่นๆ',
@@ -1531,7 +1733,7 @@ def main():
             print(data["source"])
         sources_used.add(data.get("source", "unknown"))
         sig = generate_signals(data)
-        summary = ai_summary(ticker, info["name"], data, sig)
+        summary = ai_summary(ticker, info["name"], data, sig, sector=info.get("sector",""))
         stocks.append({"ticker": ticker, "info": info, "data": data, "sig": sig, "summary": summary})
 
     stocks.sort(key=lambda s: s["sig"]["score"], reverse=True)
