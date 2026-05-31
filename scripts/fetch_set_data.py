@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """
 SET Thailand Stock Analysis System
-Fetches data from Yahoo Finance, calculates technical signals,
-and generates a self-contained HTML dashboard.
+Data sources (priority order):
+  1. iTick API  — api.itick.org  (ข้อมูลตรงจาก SET, ฟรี, สมัคร token ที่ itick.org)
+  2. Yahoo Finance (.BK)          — fallback อัตโนมัติถ้าไม่มี ITICK_TOKEN
+  3. Demo data                    — fallback สุดท้าย (local dev / network blocked)
 """
 
 import json
 import os
+import requests as _requests
 from datetime import datetime, timezone, timedelta
 import yfinance as yf
 import pandas as pd
 import numpy as np
+
+# ── iTick API token (set as env var / GitHub Actions secret) ──
+ITICK_TOKEN = os.getenv("ITICK_TOKEN", "").strip()
+ITICK_BASE  = "https://api.itick.org"
 
 # ============================================================
 # WATCHLIST — read from config/watchlist.json
@@ -206,63 +213,160 @@ def ai_summary(ticker: str, name: str, data: dict, sig: dict) -> str:
     )
 
 # ============================================================
-# DATA FETCHER
+# DATA FETCHERS
 # ============================================================
 
-def fetch_stock(ticker: str) -> dict | None:
+def _build_result(ticker: str, closes: list, volumes: list,
+                  opens: list, highs: list, lows: list,
+                  price: float, open_p: float, high_p: float,
+                  low_p: float, vol_last: float, source: str) -> dict:
+    """Shared result builder from parsed OHLCV lists."""
+    close_s = pd.Series(closes)
+    vol_s   = pd.Series(volumes)
+    prev    = closes[-2] if len(closes) >= 2 else price
+    change      = round(price - prev, 2)
+    change_pct  = round((change / prev) * 100, 2) if prev else 0.0
+    return {
+        "ticker":         ticker,
+        "price":          round(price, 2),
+        "open":           round(open_p, 2),
+        "high":           round(high_p, 2),
+        "low":            round(low_p, 2),
+        "change":         change,
+        "change_pct":     change_pct,
+        "volume_k":       round(vol_last / 1_000, 0),
+        "value_m":        round(vol_last * price / 1_000_000, 2),
+        "rsi":            calc_rsi(close_s),
+        "macd_line":      calc_macd(close_s)[0],
+        "macd_signal":    calc_macd(close_s)[1],
+        "macd_histogram": calc_macd(close_s)[2],
+        "bb_upper":       calc_bollinger(close_s)[0],
+        "bb_mid":         calc_bollinger(close_s)[1],
+        "bb_lower":       calc_bollinger(close_s)[2],
+        "volume_ratio":   calc_volume_ratio(vol_s),
+        "momentum_10d":   calc_momentum(close_s),
+        "ma20":           calc_ma(close_s, 20),
+        "ma50":           calc_ma(close_s, 50),
+        "sparkline":      [round(float(v), 2) for v in close_s.tail(30).tolist()],
+        "source":         source,
+    }
+
+
+# ── 1. iTick API (SET data, free token) ──────────────────────
+
+def fetch_itick(ticker: str) -> dict | None:
+    """Primary source: iTick API — 100% SET data, free tier 50 req/min."""
+    if not ITICK_TOKEN:
+        return None
+    headers = {"token": ITICK_TOKEN, "Accept": "application/json"}
+    try:
+        # Historical daily candles (90 days)
+        r = _requests.get(
+            f"{ITICK_BASE}/stock/kline",
+            params={"region": "TH", "code": ticker, "interval": "D", "limit": 90},
+            headers=headers, timeout=15,
+        )
+        if r.status_code != 200:
+            print(f"  [iTick] {ticker}: HTTP {r.status_code}")
+            return None
+        body = r.json()
+        if body.get("code") != 0:
+            print(f"  [iTick] {ticker}: API error {body.get('msg','')}")
+            return None
+
+        raw = body.get("data", [])
+        # Handle both formats: list-of-dicts {t,o,h,l,c,v} or list-of-lists [t,o,h,l,c,v]
+        closes, volumes, opens_l, highs_l, lows_l = [], [], [], [], []
+        for item in raw:
+            if isinstance(item, dict):
+                opens_l.append(float(item.get("o") or 0))
+                highs_l.append(float(item.get("h") or 0))
+                lows_l.append(float(item.get("l") or 0))
+                closes.append(float(item.get("c") or 0))
+                volumes.append(float(item.get("v") or 0))
+            elif isinstance(item, (list, tuple)) and len(item) >= 6:
+                opens_l.append(float(item[1]))
+                highs_l.append(float(item[2]))
+                lows_l.append(float(item[3]))
+                closes.append(float(item[4]))
+                volumes.append(float(item[5]))
+
+        closes  = [c for c in closes  if c > 0]
+        volumes = [v for v in volumes if v >= 0]
+        if len(closes) < 20:
+            print(f"  [iTick] {ticker}: insufficient candles ({len(closes)})")
+            return None
+
+        # Latest quote (for intraday price update)
+        price   = closes[-1]
+        open_p  = opens_l[-1] if opens_l else price
+        high_p  = highs_l[-1] if highs_l else price
+        low_p   = lows_l[-1]  if lows_l  else price
+        vol_last = volumes[-1] if volumes else 0
+
+        try:
+            r2 = _requests.get(
+                f"{ITICK_BASE}/stock/tick",
+                params={"region": "TH", "code": ticker},
+                headers=headers, timeout=10,
+            )
+            if r2.status_code == 200:
+                q = r2.json()
+                if q.get("code") == 0:
+                    tick = (q.get("data") or {}).get(ticker, {})
+                    if tick.get("ld"): price   = float(tick["ld"])
+                    if tick.get("o"):  open_p  = float(tick["o"])
+                    if tick.get("h"):  high_p  = float(tick["h"])
+                    if tick.get("l"):  low_p   = float(tick["l"])
+                    if tick.get("v"):  vol_last = float(tick["v"])
+        except Exception:
+            pass  # quote enrichment is best-effort
+
+        return _build_result(ticker, closes, volumes,
+                             opens_l, highs_l, lows_l,
+                             price, open_p, high_p, low_p, vol_last,
+                             source="SET (iTick)")
+
+    except Exception as e:
+        print(f"  [iTick] {ticker}: {e}")
+        return None
+
+
+# ── 2. Yahoo Finance (fallback) ───────────────────────────────
+
+def fetch_yahoo(ticker: str) -> dict | None:
+    """Fallback source: Yahoo Finance (.BK) ~85-92% accuracy."""
     symbol = f"{ticker}.BK"
     try:
-        tk = yf.Ticker(symbol)
+        tk   = yf.Ticker(symbol)
         hist = tk.history(period="3mo", interval="1d")
         if hist.empty or len(hist) < 30:
             return None
-
-        close = hist["Close"]
-        volume = hist["Volume"]
-        price = float(close.iloc[-1])
-        prev = float(close.iloc[-2])
-        open_p = float(hist["Open"].iloc[-1])
-        high_p = float(hist["High"].iloc[-1])
-        low_p = float(hist["Low"].iloc[-1])
-        vol_last = float(volume.iloc[-1])
-        change = price - prev
-        change_pct = (change / prev) * 100
-
-        rsi = calc_rsi(close)
-        macd_line, macd_signal, macd_hist = calc_macd(close)
-        bb_upper, bb_mid, bb_lower = calc_bollinger(close)
-        vol_ratio = calc_volume_ratio(volume)
-        momentum = calc_momentum(close)
-        ma20 = calc_ma(close, 20)
-        ma50 = calc_ma(close, 50)
-        sparkline = [round(float(v), 2) for v in close.tail(30).tolist()]
-
-        return {
-            "ticker": ticker,
-            "price": round(price, 2),
-            "open": round(open_p, 2),
-            "high": round(high_p, 2),
-            "low": round(low_p, 2),
-            "change": round(change, 2),
-            "change_pct": round(change_pct, 2),
-            "volume_k": round(vol_last / 1000, 0),
-            "value_m": round(vol_last * price / 1_000_000, 2),
-            "rsi": rsi,
-            "macd_line": macd_line,
-            "macd_signal": macd_signal,
-            "macd_histogram": macd_hist,
-            "bb_upper": bb_upper,
-            "bb_mid": bb_mid,
-            "bb_lower": bb_lower,
-            "volume_ratio": vol_ratio,
-            "momentum_10d": momentum,
-            "ma20": ma20,
-            "ma50": ma50,
-            "sparkline": sparkline,
-        }
+        closes  = hist["Close"].tolist()
+        volumes = hist["Volume"].tolist()
+        opens_l = hist["Open"].tolist()
+        highs_l = hist["High"].tolist()
+        lows_l  = hist["Low"].tolist()
+        return _build_result(
+            ticker, closes, volumes, opens_l, highs_l, lows_l,
+            price=closes[-1], open_p=opens_l[-1],
+            high_p=highs_l[-1], low_p=lows_l[-1], vol_last=volumes[-1],
+            source="Yahoo Finance (.BK)",
+        )
     except Exception as e:
-        print(f"  [ERROR] {ticker}: {e}")
+        print(f"  [Yahoo] {ticker}: {e}")
         return None
+
+
+# ── Main dispatcher (iTick → Yahoo → None) ───────────────────
+
+def fetch_stock(ticker: str) -> dict | None:
+    if ITICK_TOKEN:
+        data = fetch_itick(ticker)
+        if data:
+            return data
+        print(f"  [WARN] iTick failed for {ticker}, falling back to Yahoo Finance")
+    return fetch_yahoo(ticker)
 
 # ============================================================
 # DEMO DATA (fallback when network unavailable)
@@ -291,7 +395,7 @@ def make_demo_data(ticker: str) -> dict:
 # HTML GENERATOR
 # ============================================================
 
-def build_html(stocks: list) -> str:
+def build_html(stocks: list, data_source: str = "Yahoo Finance (.BK)") -> str:
     now_bkk = datetime.now(timezone.utc) + timedelta(hours=7)
     updated = now_bkk.strftime("%d/%m/%Y %H:%M") + " (ICT)"
 
@@ -653,7 +757,7 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 </div>
 
 <footer class="footer">
-  อัปเดตล่าสุด: {updated} · ข้อมูลจาก Yahoo Finance (.BK) · GitHub Actions อัปเดตทุก 30 นาที (ช่วงตลาด SET เปิด)<br>
+  อัปเดตล่าสุด: {updated} · ข้อมูลจาก <strong>{data_source}</strong> · GitHub Actions อัปเดตทุก 30 นาที (ช่วงตลาด SET เปิด)<br>
   <strong>คำเตือน:</strong> ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน
 </footer>
 
@@ -1363,30 +1467,49 @@ renderAll();
 
 def main():
     WATCHLIST_NOW = load_watchlist()
-    print(f"SET Thailand Stock Analysis — {len(WATCHLIST_NOW)} stocks")
+    if ITICK_TOKEN:
+        print(f"SET Thailand Stock Analysis — {len(WATCHLIST_NOW)} stocks  [Primary: iTick API (SET)]")
+    else:
+        print(f"SET Thailand Stock Analysis — {len(WATCHLIST_NOW)} stocks  [Primary: Yahoo Finance | Set ITICK_TOKEN for SET data]")
+
     stocks = []
+    sources_used: set[str] = set()
+
     for ticker, info in WATCHLIST_NOW.items():
-        print(f"  Fetching {ticker}.BK ...")
+        print(f"  {ticker} ...", end=" ", flush=True)
         data = fetch_stock(ticker)
         if data is None:
-            print(f"  [INFO] Demo data for {ticker}")
+            print("demo")
             data = make_demo_data(ticker)
+            data["source"] = "Demo"
+        else:
+            print(data["source"])
+        sources_used.add(data.get("source", "unknown"))
         sig = generate_signals(data)
         summary = ai_summary(ticker, info["name"], data, sig)
         stocks.append({"ticker": ticker, "info": info, "data": data, "sig": sig, "summary": summary})
 
     stocks.sort(key=lambda s: s["sig"]["score"], reverse=True)
-    print(f"\nBuilding HTML for {len(stocks)} stocks...")
-    html = build_html(stocks)
+
+    # Determine displayed data source label
+    if "SET (iTick)" in sources_used:
+        src_label = "SET Thailand (iTick API) ✓"
+    elif "Yahoo Finance (.BK)" in sources_used:
+        src_label = "Yahoo Finance (.BK)"
+    else:
+        src_label = "Demo Data"
+
+    print(f"\nBuilding HTML ({src_label}) for {len(stocks)} stocks...")
+    html = build_html(stocks, data_source=src_label)
     out = os.path.join(os.path.dirname(__file__), "..", "index.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(html)
-    print("Done! → index.html updated\n")
-    print(f"{'Ticker':<10} {'Price':>8} {'Change':>8} {'RSI':>6} {'Score':>6} Verdict")
-    print("-" * 55)
+    print("Done! → index.html\n")
+    print(f"{'Ticker':<10} {'Price':>8} {'Change':>8} {'RSI':>6} {'Score':>6} {'Source':<22} Verdict")
+    print("-" * 72)
     for s in stocks:
         d, g = s["data"], s["sig"]
-        print(f"{s['ticker']:<10} {d['price']:>8.2f} {d['change_pct']:>+7.2f}% {d['rsi']:>6.1f} {g['score']:>+6d}  {g['verdict']}")
+        print(f"{s['ticker']:<10} {d['price']:>8.2f} {d['change_pct']:>+7.2f}% {d['rsi']:>6.1f} {g['score']:>+6d}  {d.get('source','?'):<22} {g['verdict']}")
 
 if __name__ == "__main__":
     main()
