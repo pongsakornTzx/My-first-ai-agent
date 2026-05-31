@@ -655,7 +655,10 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
     <button class="filter-btn" onclick="filterVerdict('sell',this)">Sell</button>
     <button class="filter-btn" onclick="filterVerdict('strong-sell',this)">Strong Sell</button>
   </div>
-  <button class="add-stock-btn" onclick="openModal()">+ เพิ่มหุ้น</button>
+  <div style="display:flex;gap:.4rem;margin-left:auto;flex-wrap:wrap;">
+    <button id="restoreBtn" onclick="restoreAllStocks()" style="display:none;background:#1c1917;color:#f97316;border:1px solid #92400e;border-radius:6px;padding:.3rem .75rem;font-size:.75rem;cursor:pointer;align-items:center;gap:.3rem;">↩ คืนหุ้นที่ซ่อน</button>
+    <button class="add-stock-btn" onclick="openModal()">+ เพิ่มหุ้น</button>
+  </div>
 </div>
 
 <!-- CATEGORY TABS -->
@@ -750,6 +753,10 @@ const SECTOR_COLORS  = {json.dumps(SECTOR_COLORS, ensure_ascii=False)};
 // allStocks = single source of truth (server + custom mixed)
 let allStocks = [...STOCKS_INITIAL];
 
+// ── HIDDEN TICKERS (localStorage) ────────────────────────────
+function getHiddenList() {{ try {{ return JSON.parse(localStorage.getItem('hiddenTickers')||'[]'); }} catch{{return[];}} }}
+function saveHiddenList(list) {{ localStorage.setItem('hiddenTickers', JSON.stringify(list)); }}
+
 // ── STATE ─────────────────────────────────────────────────────
 let currentView   = 'report';
 let verdictFilter = 'all';
@@ -830,7 +837,8 @@ function refreshCategoryTabs() {{
 function visible(s) {{
   const vm = verdictFilter === 'all' || s.verdict_class === verdictFilter;
   const sm = sectorFilter  === 'all' || s.sector === sectorFilter;
-  return vm && sm;
+  const hm = !getHiddenList().includes(s.ticker);
+  return vm && sm && hm;
 }}
 
 function filteredStocks() {{
@@ -873,9 +881,7 @@ function renderTable() {{
     }}).join('');
     const sc = secCol[s.sector] || '#6b7280';
     const sel = selectedTicker === s.ticker ? 'selected' : '';
-    const delBtn = s.is_custom
-      ? `<button onclick="event.stopPropagation();removeCustomStock('${{s.ticker}}')" style="margin-left:.35rem;background:none;border:none;color:#6b7280;cursor:pointer;font-size:.7rem;padding:0" title="ลบออก">✕</button>`
-      : '';
+    const delBtn = `<button onclick="event.stopPropagation();hideStock('${{s.ticker}}')" style="margin-left:.35rem;background:none;border:none;color:#4b5563;cursor:pointer;font-size:.75rem;padding:0;line-height:1" title="ซ่อนหุ้นนี้">🗑</button>`;
     return `<tr class="${{sel}}" onclick="selectStock('${{s.ticker}}')" data-ticker="${{s.ticker}}" data-sector="${{s.sector}}" data-verdict="${{s.verdict_class}}">
       <td>
         <div class="ticker-cell">
@@ -932,9 +938,7 @@ function renderCards() {{
     ).join('');
     const rsiCol = s.rsi<30?'#22c55e':s.rsi>70?'#ef4444':'#3b82f6';
     const sel = selectedTicker === s.ticker ? 'selected' : '';
-    const cardDelBtn = s.is_custom
-      ? `<button onclick="event.stopPropagation();removeCustomStock('${{s.ticker}}')" style="margin-left:auto;background:none;border:none;color:#6b7280;cursor:pointer;font-size:.72rem" title="ลบ">✕ ลบ</button>`
-      : '';
+    const cardDelBtn = `<button onclick="event.stopPropagation();hideStock('${{s.ticker}}')" style="margin-left:auto;background:none;border:none;color:#4b5563;cursor:pointer;font-size:.75rem;padding:0" title="ซ่อนหุ้นนี้">🗑 ลบ</button>`;
     return `<div class="stock-card ${{sel}}" onclick="selectStock('${{s.ticker}}')" data-ticker="${{s.ticker}}" data-sector="${{s.sector}}" data-verdict="${{s.verdict_class}}">
       <div class="card-header">
         <div class="ticker-info">
@@ -1376,6 +1380,31 @@ async function fetchAndMergeCustomStock(ticker) {{
   return true;
 }}
 
+function hideStock(ticker) {{
+  const hidden = getHiddenList();
+  if (!hidden.includes(ticker)) saveHiddenList([...hidden, ticker]);
+  if (selectedTicker === ticker) closeChartPane();
+  // if it was a custom stock, also remove it
+  if (allStocks.find(s => s.ticker === ticker && s.is_custom)) {{
+    allStocks = allStocks.filter(s => s.ticker !== ticker);
+    saveCustomList(getCustomList().filter(t => t !== ticker));
+    renderCustomList();
+  }}
+  renderAll();
+  updateRestoreBtn();
+}}
+function restoreAllStocks() {{
+  saveHiddenList([]);
+  renderAll();
+  updateRestoreBtn();
+}}
+function updateRestoreBtn() {{
+  const btn = document.getElementById('restoreBtn');
+  if (!btn) return;
+  const n = getHiddenList().length;
+  btn.style.display = n > 0 ? 'inline-flex' : 'none';
+  btn.textContent = `↩ คืนหุ้นที่ซ่อน (${{n}})`;
+}}
 function removeCustomStock(ticker) {{
   allStocks = allStocks.filter(s => s.ticker !== ticker);
   const list = getCustomList().filter(t => t !== ticker);
@@ -1400,6 +1429,7 @@ function renderCustomList() {{
 
 // ── INIT ──────────────────────────────────────────────────────
 renderAll();
+updateRestoreBtn();
 (async function() {{
   const list = getCustomList();
   for (const ticker of list) {{
