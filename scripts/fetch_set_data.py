@@ -573,19 +573,19 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 
 <!-- OVERVIEW BAR -->
 <div class="overview-bar">
-  <div class="ov-item"><span class="ov-label">หุ้นทั้งหมด</span><span class="ov-val">{total}</span></div>
+  <div class="ov-item"><span class="ov-label">หุ้นทั้งหมด</span><span class="ov-val" id="ov-total">{total}</span></div>
   <div class="ov-sep"></div>
-  <div class="ov-item"><span class="ov-label">สัญญาณบวก</span><span class="ov-val" style="color:#22c55e">{bullish_n}</span></div>
-  <div class="ov-item"><span class="ov-label">สัญญาณลบ</span><span class="ov-val" style="color:#ef4444">{bearish_n}</span></div>
-  <div class="ov-item"><span class="ov-label">ทรงตัว</span><span class="ov-val" style="color:#fbbf24">{neutral_n}</span></div>
+  <div class="ov-item"><span class="ov-label">สัญญาณบวก</span><span class="ov-val" id="ov-bullish" style="color:#22c55e">{bullish_n}</span></div>
+  <div class="ov-item"><span class="ov-label">สัญญาณลบ</span><span class="ov-val" id="ov-bearish" style="color:#ef4444">{bearish_n}</span></div>
+  <div class="ov-item"><span class="ov-label">ทรงตัว</span><span class="ov-val" id="ov-neutral" style="color:#fbbf24">{neutral_n}</span></div>
   <div class="ov-sep"></div>
-  <div class="ov-item"><span class="ov-label">RSI เฉลี่ย</span><span class="ov-val" style="color:#3b82f6">{avg_rsi}</span></div>
+  <div class="ov-item"><span class="ov-label">RSI เฉลี่ย</span><span class="ov-val" id="ov-rsi" style="color:#3b82f6">{avg_rsi}</span></div>
   <div class="ov-sep"></div>
   <div class="ov-item"><span class="ov-label">อัปเดต</span><span class="ov-val" style="font-size:.75rem">{updated}</span></div>
 </div>
 
 <!-- MOVERS BAR -->
-<div class="movers-bar">
+<div class="movers-bar" id="moversBar">
   <span class="movers-label" style="color:#22c55e">▲ TOP ขึ้น:</span>
   {'&nbsp;'.join(mover_item(s,'#22c55e') for s in top3)}
   &nbsp;&nbsp;
@@ -611,7 +611,7 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 </div>
 
 <!-- CATEGORY TABS -->
-<div class="cat-bar">
+<div class="cat-bar" id="catBar">
   <button class="cat-all active" id="catAll" onclick="filterSectorAll(this)">ทั้งหมด</button>
   {sector_tabs_html}
 </div>
@@ -651,9 +651,6 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
     <div class="chart-panel" id="chartPanel"></div>
   </div>
 </div>
-
-<!-- CUSTOM CARDS SECTION -->
-<div id="customCardsSection"></div>
 
 <footer class="footer">
   อัปเดตล่าสุด: {updated} · ข้อมูลจาก Yahoo Finance (.BK) · GitHub Actions อัปเดตทุก 30 นาที (ช่วงตลาด SET เปิด)<br>
@@ -699,23 +696,25 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────
-const STOCKS = {stocks_json_str};
-const SECTOR_COLORS = {json.dumps(SECTOR_COLORS, ensure_ascii=False)};
+const STOCKS_INITIAL = {stocks_json_str};
+const SECTOR_COLORS  = {json.dumps(SECTOR_COLORS, ensure_ascii=False)};
+
+// allStocks = single source of truth (server + custom mixed)
+let allStocks = [...STOCKS_INITIAL];
 
 // ── STATE ─────────────────────────────────────────────────────
-let currentView = 'report';
+let currentView   = 'report';
 let verdictFilter = 'all';
-let sectorFilter = 'all';
-let sortCol = 'score';
-let sortDir = -1;
+let sectorFilter  = 'all';
+let sortCol       = 'score';
+let sortDir       = -1;
 let selectedTicker = null;
-let chartInstance = null;
+let chartInstance  = null;
 
 // ── HELPERS ───────────────────────────────────────────────────
 const chgColor = pct => pct > 0 ? '#22c55e' : pct < 0 ? '#ef4444' : '#9ca3af';
-const arrow = pct => pct > 0 ? '▲' : pct < 0 ? '▼' : '−';
-const fmtPct = pct => `${{arrow(pct)}} ${{Math.abs(pct).toFixed(2)}}%`;
-const fmtChg = (c,pct) => `${{arrow(pct)}} ${{Math.abs(pct).toFixed(2)}}% (${{c>=0?'+':''}}${{c.toFixed(2)}})`;
+const arrow    = pct => pct > 0 ? '▲' : pct < 0 ? '▼' : '−';
+const fmtChg   = (c,pct) => `${{arrow(pct)}} ${{Math.abs(pct).toFixed(2)}}% (${{c>=0?'+':''}}${{c.toFixed(2)}})`;
 
 const vbClass = vc => `verdict-badge vb-${{vc}}`;
 const vbLabel = {{
@@ -723,14 +722,71 @@ const vbLabel = {{
   'sell':'Sell','strong-sell':'Strong Sell'
 }};
 
+// ── RENDER ALL (single call updates every UI section) ──────────
+function renderAll() {{
+  refreshOverview();
+  refreshMovers();
+  refreshCategoryTabs();
+  if (currentView === 'report') renderTable();
+  else renderCards();
+}}
+
+// ── OVERVIEW BAR ──────────────────────────────────────────────
+function refreshOverview() {{
+  const total   = allStocks.length;
+  const bullish = allStocks.filter(s => s.score > 0).length;
+  const bearish = allStocks.filter(s => s.score < 0).length;
+  const neutral = total - bullish - bearish;
+  const avgRsi  = total ? (allStocks.reduce((a,s)=>a+s.rsi,0)/total).toFixed(1) : 0;
+  const set = (id,v) => {{ const el=document.getElementById(id); if(el) el.textContent=v; }};
+  set('ov-total',   total);
+  set('ov-bullish', bullish);
+  set('ov-bearish', bearish);
+  set('ov-neutral', neutral);
+  set('ov-rsi',     avgRsi);
+}}
+
+// ── MOVERS BAR ────────────────────────────────────────────────
+function refreshMovers() {{
+  const bar = document.getElementById('moversBar');
+  if (!bar) return;
+  const sorted = [...allStocks].sort((a,b)=>b.change_pct-a.change_pct);
+  const top3 = sorted.slice(0,3);
+  const bot3 = sorted.slice(-3).reverse();
+  const item = (s,col) => `<span class="mover" style="color:${{col}}">${{s.ticker}} ${{s.change_pct>=0?'▲':'▼'}}${{Math.abs(s.change_pct).toFixed(2)}}%</span>`;
+  bar.innerHTML =
+    `<span class="movers-label" style="color:#22c55e">▲ TOP ขึ้น:</span>
+     ${{top3.map(s=>item(s,'#22c55e')).join('&nbsp;')}}
+     &nbsp;&nbsp;
+     <span class="movers-label" style="color:#ef4444">▼ TOP ลง:</span>
+     ${{bot3.map(s=>item(s,'#ef4444')).join('&nbsp;')}}`;
+}}
+
+// ── CATEGORY TABS ─────────────────────────────────────────────
+function refreshCategoryTabs() {{
+  const bar = document.getElementById('catBar');
+  if (!bar) return;
+  bar.querySelectorAll('.cat-tab').forEach(t => t.remove());
+  const sectors = [...new Set(allStocks.map(s=>s.sector))].sort();
+  sectors.forEach(sec => {{
+    const col = SECTOR_COLORS[sec] || '#6b7280';
+    const btn = document.createElement('button');
+    btn.className = 'cat-tab' + (sectorFilter===sec?' active':'');
+    btn.dataset.sector = sec;
+    btn.onclick = function(){{ filterSector(this); }};
+    btn.innerHTML = `<span class="cat-dot" style="background:${{col}}"></span>${{sec}}`;
+    bar.appendChild(btn);
+  }});
+}}
+
 function visible(s) {{
   const vm = verdictFilter === 'all' || s.verdict_class === verdictFilter;
-  const sm = sectorFilter === 'all' || s.sector === sectorFilter;
+  const sm = sectorFilter  === 'all' || s.sector === sectorFilter;
   return vm && sm;
 }}
 
 function filteredStocks() {{
-  let data = STOCKS.filter(visible);
+  let data = allStocks.filter(visible);
   if (sortCol) {{
     data = [...data].sort((a,b) => {{
       const av = a[sortCol] ?? (typeof a[sortCol]==='string' ? '' : 0);
@@ -769,12 +825,16 @@ function renderTable() {{
     }}).join('');
     const sc = secCol[s.sector] || '#6b7280';
     const sel = selectedTicker === s.ticker ? 'selected' : '';
+    const delBtn = s.is_custom
+      ? `<button onclick="event.stopPropagation();removeCustomStock('${{s.ticker}}')" style="margin-left:.35rem;background:none;border:none;color:#6b7280;cursor:pointer;font-size:.7rem;padding:0" title="ลบออก">✕</button>`
+      : '';
     return `<tr class="${{sel}}" onclick="selectStock('${{s.ticker}}')" data-ticker="${{s.ticker}}" data-sector="${{s.sector}}" data-verdict="${{s.verdict_class}}">
       <td>
         <div class="ticker-cell">
           <div class="tc-top">
             <span class="tc-sym">${{s.ticker}}</span>
             <span class="tc-sector" style="background:${{sc}}20;color:${{sc}}">${{s.sector}}</span>
+            ${{delBtn}}
           </div>
           <span class="tc-name">${{s.name}}</span>
         </div>
@@ -824,11 +884,15 @@ function renderCards() {{
     ).join('');
     const rsiCol = s.rsi<30?'#22c55e':s.rsi>70?'#ef4444':'#3b82f6';
     const sel = selectedTicker === s.ticker ? 'selected' : '';
+    const cardDelBtn = s.is_custom
+      ? `<button onclick="event.stopPropagation();removeCustomStock('${{s.ticker}}')" style="margin-left:auto;background:none;border:none;color:#6b7280;cursor:pointer;font-size:.72rem" title="ลบ">✕ ลบ</button>`
+      : '';
     return `<div class="stock-card ${{sel}}" onclick="selectStock('${{s.ticker}}')" data-ticker="${{s.ticker}}" data-sector="${{s.sector}}" data-verdict="${{s.verdict_class}}">
       <div class="card-header">
         <div class="ticker-info">
           <span class="ticker-symbol">${{s.ticker}}</span>
           <span class="sector-tag" style="background:${{sc}}20;color:${{sc}}">${{s.sector}}</span>
+          ${{cardDelBtn}}
         </div>
         <span class="company-name">${{s.name}}</span>
       </div>
@@ -855,11 +919,10 @@ function renderCards() {{
 // ── SELECT STOCK → CHART PANEL ────────────────────────────────
 function selectStock(ticker) {{
   selectedTicker = ticker;
-  const s = STOCKS.find(x => x.ticker === ticker);
+  const s = allStocks.find(x => x.ticker === ticker);
   if (!s) return;
   openChartPane(s);
-  renderTable();
-  renderCards();
+  if (currentView === 'report') renderTable(); else renderCards();
 }}
 
 function openChartPane(s) {{
@@ -1069,8 +1132,7 @@ function switchView(view, btn) {{
   btn.classList.add('active');
   document.getElementById('reportView').classList.toggle('hidden', view !== 'report');
   document.getElementById('cardsView').classList.toggle('hidden', view !== 'cards');
-  if (view === 'report') renderTable();
-  else renderCards();
+  if (view === 'report') renderTable(); else renderCards();
 }}
 
 // ── FILTERS ───────────────────────────────────────────────────
@@ -1078,7 +1140,7 @@ function filterVerdict(v, btn) {{
   verdictFilter = v;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderTable(); renderCards();
+  if (currentView === 'report') renderTable(); else renderCards();
 }}
 
 function filterSector(btn) {{
@@ -1086,14 +1148,14 @@ function filterSector(btn) {{
   document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
   document.getElementById('catAll').classList.remove('active');
   btn.classList.add('active');
-  renderTable(); renderCards();
+  if (currentView === 'report') renderTable(); else renderCards();
 }}
 
 function filterSectorAll(btn) {{
   sectorFilter = 'all';
   document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderTable(); renderCards();
+  if (currentView === 'report') renderTable(); else renderCards();
 }}
 
 // ── TABLE SORT ────────────────────────────────────────────────
@@ -1147,12 +1209,12 @@ async function addCustomStock() {{
   const status = document.getElementById('addStatus');
   if (list.includes(ticker)) {{ status.textContent=`${{ticker}} อยู่ในรายการแล้ว`; status.style.color='#fbbf24'; return; }}
   status.textContent = `กำลังดึงข้อมูล ${{ticker}}...`; status.style.color='#94a3b8';
-  const ok = await fetchAndRenderCustomCard(ticker);
+  const ok = await fetchAndMergeCustomStock(ticker);
   if (ok) {{
     list.push(ticker); saveCustomList(list); renderCustomList();
     document.getElementById('tickerInput').value = '';
     document.getElementById('suggestions').innerHTML = '';
-    status.textContent = `✓ เพิ่ม ${{ticker}} สำเร็จ`; status.style.color='#22c55e';
+    status.textContent = `✓ เพิ่ม ${{ticker}} เข้ารายการแล้ว`; status.style.color='#22c55e';
   }} else {{
     status.textContent = `ไม่พบข้อมูล ${{ticker}} — ตรวจสอบ ticker`; status.style.color='#ef4444';
   }}
@@ -1177,7 +1239,8 @@ async function fetchYahoo(symbol) {{
   return null;
 }}
 
-async function fetchAndRenderCustomCard(ticker) {{
+// ── FETCH + MERGE custom stock into allStocks ─────────────────
+async function fetchAndMergeCustomStock(ticker) {{
   const result = await fetchYahoo(ticker+'.BK');
   if (!result) return false;
   const closes = result.indicators?.quote?.[0]?.close?.filter(v=>v!=null)||[];
@@ -1185,97 +1248,86 @@ async function fetchAndRenderCustomCard(ticker) {{
   const opens  = result.indicators?.quote?.[0]?.open?.filter(v=>v!=null)||[];
   const highs  = result.indicators?.quote?.[0]?.high?.filter(v=>v!=null)||[];
   const lows   = result.indicators?.quote?.[0]?.low?.filter(v=>v!=null)||[];
-  if (closes.length<30) return false;
-  const price=+closes[closes.length-1].toFixed(2);
-  const prev=closes[closes.length-2];
-  const change=+(price-prev).toFixed(2);
-  const changePct=+((change/prev)*100).toFixed(2);
-  const openP=+opens[opens.length-1].toFixed(2);
-  const highP=+highs.slice(-1)[0].toFixed(2);
-  const lowP=+lows.slice(-1)[0].toFixed(2);
-  const rsi=calcRSI(closes);
-  const {{hist:macdHist}}=calcMACD(closes);
-  const bb=calcBB(closes);
-  const avgVol=vols.slice(-20).reduce((a,b)=>a+b,0)/20;
-  const lastVol=vols[vols.length-1];
-  const volRatio=+(lastVol/avgVol).toFixed(2);
-  const volK=Math.round(lastVol/1000);
-  const valM=+(lastVol*price/1e6).toFixed(2);
-  const mom10=closes.length>10?+((price-closes[closes.length-11])/closes[closes.length-11]*100).toFixed(2):0;
-  const ma20=+(closes.slice(-20).reduce((a,b)=>a+b,0)/20).toFixed(2);
-  const ma50=+(closes.slice(-50).reduce((a,b)=>a+b,0)/50).toFixed(2);
-  const spark=closes.slice(-30).map(v=>+v.toFixed(2));
+  if (closes.length < 20) return false;
 
-  // Score
-  let score=0,signals=[];
+  const price     = +closes[closes.length-1].toFixed(2);
+  const prev      = closes[closes.length-2];
+  const change    = +(price-prev).toFixed(2);
+  const changePct = +((change/prev)*100).toFixed(2);
+  const openP     = +opens[opens.length-1].toFixed(2);
+  const highP     = +highs.slice(-1)[0].toFixed(2);
+  const lowP      = +lows.slice(-1)[0].toFixed(2);
+  const rsi       = calcRSI(closes);
+  const {{hist:macdHist}} = calcMACD(closes);
+  const bb        = calcBB(closes);
+  const avgVol    = vols.slice(-20).reduce((a,b)=>a+b,0)/20;
+  const lastVol   = vols[vols.length-1];
+  const volRatio  = +(lastVol/avgVol).toFixed(2);
+  const volK      = Math.round(lastVol/1000);
+  const valM      = +(lastVol*price/1e6).toFixed(2);
+  const mom10     = closes.length>10 ? +((price-closes[closes.length-11])/closes[closes.length-11]*100).toFixed(2) : 0;
+  const ma20      = +(closes.slice(-20).reduce((a,b)=>a+b,0)/20).toFixed(2);
+  const ma50      = closes.length>=50 ? +(closes.slice(-50).reduce((a,b)=>a+b,0)/50).toFixed(2) : ma20;
+  const spark     = closes.slice(-30).map(v=>+v.toFixed(2));
+
+  let score=0, signals=[];
   if(rsi<30){{score+=2;signals.push({{type:'bullish',label:'RSI Oversold',detail:`RSI=${{rsi}}`}});}}
   else if(rsi>70){{score-=2;signals.push({{type:'bearish',label:'RSI Overbought',detail:`RSI=${{rsi}}`}});}}
+  else signals.push({{type:'neutral',label:'RSI Neutral',detail:`RSI=${{rsi}}`}});
   if(macdHist>0){{score+=1;signals.push({{type:'bullish',label:'MACD+',detail:`${{macdHist}}`}});}}
   else{{score-=1;signals.push({{type:'bearish',label:'MACD−',detail:`${{macdHist}}`}});}}
   if(price<=bb.lower){{score+=2;signals.push({{type:'bullish',label:'BB Lower',detail:'แตะ Lower Band'}});}}
   else if(price>=bb.upper){{score-=2;signals.push({{type:'bearish',label:'BB Upper',detail:'แตะ Upper Band'}});}}
+  else if(price>bb.mid){{score+=1;signals.push({{type:'bullish',label:'BB Mid+',detail:'เหนือ Midline'}});}}
   if(volRatio>2){{score+=(mom10>0?1:-1);signals.push({{type:'alert',label:'Vol Spike',detail:`${{volRatio}}x`}});}}
   if(mom10>5){{score+=2;signals.push({{type:'bullish',label:'Mom+',detail:`+${{mom10}}%`}});}}
+  else if(mom10>2){{score+=1;signals.push({{type:'bullish',label:'Mom↑',detail:`+${{mom10}}%`}});}}
   else if(mom10<-5){{score-=2;signals.push({{type:'bearish',label:'Mom−',detail:`${{mom10}}%`}});}}
+  else if(mom10<-2){{score-=1;signals.push({{type:'bearish',label:'Mom↓',detail:`${{mom10}}%`}});}}
   if(ma20>ma50&&price>ma20){{score+=2;signals.push({{type:'bullish',label:'MA↑',detail:'P>MA20>MA50'}});}}
   else if(ma20<ma50&&price<ma20){{score-=2;signals.push({{type:'bearish',label:'MA↓',detail:'P<MA20<MA50'}});}}
+
   const vcMap=[[4,'Strong Buy','strong-buy'],[2,'Buy','buy'],[-1,'Hold','hold'],[-3,'Sell','sell'],[-999,'Strong Sell','strong-sell']];
-  let verdict='Hold',vc='hold';
+  let verdict='Hold', vc='hold';
   for(const[th,v,c] of vcMap){{if(score>=th){{verdict=v;vc=c;break;}}}}
 
-  const stockData = {{ticker,name:ticker,sector:'เพิ่มเอง',price,open:openP,high:highP,low:lowP,change,change_pct:changePct,volume_k:volK,value_m:valM,rsi,macd_histogram:macdHist,bb_upper:bb.upper,bb_mid:bb.mid,bb_lower:bb.lower,volume_ratio:volRatio,momentum_10d:mom10,ma20,ma50,sparkline:spark,verdict,verdict_class:vc,score,signals,summary:`<strong>${{ticker}}</strong> ${{price.toFixed(2)}}฿ เปลี่ยนแปลง${{changePct>=0?'บวก':'ลบ'}} ${{Math.abs(changePct).toFixed(2)}}% → <strong>${{verdict}}</strong> (score ${{score>=0?'+':''}}${{score}})`}};
+  const bulls=signals.filter(s=>s.type==='bullish').length;
+  const bears=signals.filter(s=>s.type==='bearish').length;
+  const trend=score>0?'ขาขึ้น':score<0?'ขาลง':'ทรงตัว';
+  const summary=`<strong>${{ticker}} (เพิ่มเอง)</strong> ${{price.toFixed(2)}}฿ `+
+    `เปลี่ยนแปลง${{changePct>=0?'บวก':'ลบ'}} ${{Math.abs(changePct).toFixed(2)}}% `+
+    `ภาพรวม<strong>${{trend}}</strong> — ${{bulls}}↑ ${{bears}}↓ `+
+    `RSI ${{rsi}} · Vol ${{volRatio}}x · Mom ${{mom10>=0?'+':''}}${{mom10}}% `+
+    `→ <strong>${{verdict}}</strong> (score ${{score>=0?'+':''}}${{score}})`;
 
-  renderCustomCardElement(stockData);
+  const stockData = {{
+    ticker, name:ticker, sector:'เพิ่มเอง',
+    price, open:openP, high:highP, low:lowP,
+    change, change_pct:changePct,
+    volume_k:volK, value_m:valM,
+    rsi, macd_histogram:macdHist,
+    bb_upper:bb.upper, bb_mid:bb.mid, bb_lower:bb.lower,
+    volume_ratio:volRatio, momentum_10d:mom10,
+    ma20, ma50, sparkline:spark,
+    verdict, verdict_class:vc, score, signals, summary,
+    is_custom: true,
+  }};
+
+  // Merge into allStocks (replace if exists, else push)
+  const idx = allStocks.findIndex(s => s.ticker === ticker);
+  if (idx >= 0) allStocks[idx] = stockData;
+  else allStocks.push(stockData);
+
+  renderAll();
   return true;
 }}
 
-function renderCustomCardElement(s) {{
-  const section=document.getElementById('customCardsSection');
-  const vcStyles={{'strong-buy':['#052e16','#16a34a','#22c55e'],'buy':['#052e16','#15803d','#4ade80'],'hold':['#1c1917','#92400e','#fbbf24'],'sell':['#2d0000','#b91c1c','#f87171'],'strong-sell':['#2d0000','#991b1b','#ef4444']}};
-  const [vbg,vborder,vtext]=vcStyles[s.verdict_class]||['#1c1917','#6b7280','#d1d5db'];
-  const bstyle={{bullish:'background:#052e16;color:#4ade80;border:1px solid #16a34a',bearish:'background:#2d0000;color:#f87171;border:1px solid #b91c1c',neutral:'background:#1c1917;color:#d1d5db;border:1px solid #374151',alert:'background:#1c1400;color:#fbbf24;border:1px solid #92400e'}};
-  const badges=s.signals.slice(0,6).map(sig=>`<span class="signal-badge" style="${{bstyle[sig.type]||bstyle.neutral}}">${{sig.label}}</span>`).join('');
-  const cc=chgColor(s.change_pct);
-  const rsiCol=s.rsi<30?'#22c55e':s.rsi>70?'#ef4444':'#3b82f6';
-  const html=`<div class="stock-card" id="custom-card-${{s.ticker}}" style="border-color:#7c3aed40" onclick="openChartPane(${{JSON.stringify(s).replace(/</g,'&lt;')}})">
-    <div class="card-header">
-      <div class="ticker-info">
-        <span class="ticker-symbol">${{s.ticker}}</span>
-        <span class="sector-tag" style="background:#7c3aed20;color:#a78bfa">เพิ่มเอง</span>
-        <button onclick="event.stopPropagation();removeCustomStock('${{s.ticker}}')" style="margin-left:auto;background:none;border:none;color:#6b7280;cursor:pointer;font-size:.75rem">✕ ลบ</button>
-      </div>
-      <span class="company-name">${{s.ticker}}.BK live</span>
-    </div>
-    <div class="price-row">
-      <div><span class="price-value">${{s.price.toFixed(2)}}</span><span class="price-unit">฿</span></div>
-      <div class="price-change" style="color:${{cc}}">${{fmtChg(s.change,s.change_pct)}}</div>
-    </div>
-    <div class="sparkline-container">${{sparkSVG(s.sparkline,120,38)}}</div>
-    <div class="indicators-grid">
-      <div class="indicator"><span class="ind-label">RSI</span><span class="ind-value" style="color:${{rsiCol}}">${{s.rsi}}</span></div>
-      <div class="indicator"><span class="ind-label">MACD</span><span class="ind-value" style="color:${{s.macd_histogram>0?'#22c55e':'#ef4444'}}">${{s.macd_histogram>=0?'+':''}}${{s.macd_histogram}}</span></div>
-      <div class="indicator"><span class="ind-label">Vol</span><span class="ind-value">${{s.volume_ratio}}x</span></div>
-    </div>
-    <div class="signals-row">${{badges}}</div>
-    <div class="verdict-box" style="background:${{vbg}};border:1px solid ${{vborder}};color:${{vtext}}">${{s.verdict}} (score ${{s.score>=0?'+':''}}${{s.score}})</div>
-    <div class="ai-summary">${{s.summary}}</div>
-  </div>`;
-
-  let grid=document.getElementById('customCardsGrid');
-  if (!grid) {{
-    section.innerHTML='<div style="padding:.4rem 1.5rem;color:#6b7280;font-size:.75rem;border-top:1px solid var(--border)">หุ้นที่เพิ่มเอง (ข้อมูล live ผ่านเบราว์เซอร์)</div><div class="cards-grid" id="customCardsGrid"></div>';
-    grid=document.getElementById('customCardsGrid');
-  }}
-  const ex=document.getElementById(`custom-card-${{s.ticker}}`);
-  if(ex) ex.outerHTML=html; else grid.insertAdjacentHTML('beforeend',html);
-}}
-
 function removeCustomStock(ticker) {{
-  const list=getCustomList().filter(t=>t!==ticker);
+  allStocks = allStocks.filter(s => s.ticker !== ticker);
+  const list = getCustomList().filter(t => t !== ticker);
   saveCustomList(list);
-  document.getElementById(`custom-card-${{ticker}}`)?.remove();
-  const grid=document.getElementById('customCardsGrid');
-  if(grid&&!grid.children.length) document.getElementById('customCardsSection').innerHTML='';
+  if (selectedTicker === ticker) closeChartPane();
+  renderAll();
   renderCustomList();
 }}
 
@@ -1287,11 +1339,18 @@ function renderCustomList() {{
     : '<div style="color:#4b5563;font-size:.78rem">ยังไม่มีหุ้นที่เพิ่ม</div>';
 }}
 
+// ── CARDS: show delete button for custom stocks ───────────────
+// (injected inside renderCards via is_custom flag)
+// ── TABLE: show ✕ label for custom stocks ────────────────────
+// (ticker cell shows "เพิ่มเอง" sector tag)
+
 // ── INIT ──────────────────────────────────────────────────────
-renderTable();
+renderAll();
 (async function() {{
   const list = getCustomList();
-  for (const ticker of list) await fetchAndRenderCustomCard(ticker);
+  for (const ticker of list) {{
+    await fetchAndMergeCustomStock(ticker);
+  }}
 }})();
 </script>
 </body>
