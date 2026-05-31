@@ -111,10 +111,88 @@
   }
   .pulse { animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:0.5 } }
+
+  /* Add Stock Button */
+  .add-stock-btn {
+    margin-left: auto; background: linear-gradient(135deg, #1e3a5f, #1e4080);
+    border: 1px solid #3b82f6; color: #93c5fd;
+    padding: 0.35rem 1rem; border-radius: 999px;
+    cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .add-stock-btn:hover { background: #2563eb; color: #fff; transform: translateY(-1px); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+    z-index: 1000; align-items: center; justify-content: center;
+  }
+  .modal-box {
+    background: #13131f; border: 1px solid #2a2a3a; border-radius: 16px;
+    width: min(480px, 95vw); max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid #2a2a3a;
+    font-size: 1rem; font-weight: 700; color: #fff;
+  }
+  .modal-close {
+    background: none; border: none; color: #6b7280; cursor: pointer;
+    font-size: 1.1rem; padding: 0.2rem 0.5rem; border-radius: 6px;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: #fff; }
+  .modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+  .input-row { display: flex; gap: 0.5rem; }
+  .ticker-input {
+    flex: 1; background: #1a1a24; border: 1px solid #2a2a3a; color: #fff;
+    border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.95rem;
+    outline: none; transition: border-color 0.2s; text-transform: uppercase;
+  }
+  .ticker-input:focus { border-color: #3b82f6; }
+  .add-btn {
+    background: #2563eb; color: #fff; border: none; border-radius: 8px;
+    padding: 0.6rem 1.2rem; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .add-btn:hover { background: #1d4ed8; }
+  .add-status { font-size: 0.85rem; min-height: 1.2em; }
+  .suggestions { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .sug-item {
+    background: #1e3a5f; color: #93c5fd; border: 1px solid #3b82f640;
+    border-radius: 999px; padding: 0.2rem 0.6rem; font-size: 0.78rem;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .sug-item:hover { background: #2563eb; color: #fff; }
+  .custom-list-label { font-size: 0.8rem; color: #6b7280; font-weight: 600; }
+  .custom-list { display: flex; flex-direction: column; gap: 0.35rem; }
+  .clist-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #1a1a24; border-radius: 8px; padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  .clist-remove {
+    background: none; border: none; color: #ef4444; cursor: pointer;
+    font-size: 0.78rem; padding: 0.1rem 0.4rem;
+  }
+  .suggest-popular { display: flex; flex-direction: column; gap: 0.5rem; }
+  .suggest-title { font-size: 0.75rem; color: #6b7280; font-weight: 600; text-transform: uppercase; }
+  .suggest-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .suggest-chip {
+    background: #1a1a24; color: #94a3b8; border: 1px solid #2a2a3a;
+    border-radius: 999px; padding: 0.25rem 0.65rem; font-size: 0.78rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .suggest-chip:hover { background: #1e3a5f; color: #93c5fd; border-color: #3b82f6; }
+
   @media(max-width:600px) {
     .cards-grid { grid-template-columns: 1fr; padding: 1rem; }
     .header { padding: 1rem; }
     .overview-bar { padding: 0.75rem 1rem; }
+    .filter-bar { padding: 0.75rem 1rem; }
+    .add-stock-btn { margin-left: 0; width: 100%; text-align: center; }
   }
 </style>
 </head>
@@ -138,7 +216,7 @@
       <div class="ov-item"><span class="ov-label">สัญญาณลบ</span><span class="ov-val" style="color:#ef4444">4</span></div>
       <div class="ov-item"><span class="ov-label">ทรงตัว</span><span class="ov-val" style="color:#fbbf24">0</span></div>
       <div class="ov-item"><span class="ov-label">RSI เฉลี่ย</span><span class="ov-val" style="color:#3b82f6">51.1</span></div>
-      <div class="ov-item"><span class="ov-label">อัปเดต</span><span class="ov-val" style="font-size:0.8rem">31/05/2026 09:40 (ICT)</span></div>
+      <div class="ov-item"><span class="ov-label">อัปเดต</span><span class="ov-val" style="font-size:0.8rem">31/05/2026 10:02 (ICT)</span></div>
     </div>
     
 
@@ -161,6 +239,44 @@
   <button class="filter-btn" onclick="filterCards('hold', this)">Hold</button>
   <button class="filter-btn" onclick="filterCards('sell', this)">Sell</button>
   <button class="filter-btn" onclick="filterCards('strong-sell', this)">Strong Sell</button>
+  <button class="add-stock-btn" onclick="openModal()">+ เพิ่มหุ้น</button>
+</div>
+
+<!-- Add Stock Modal -->
+<div id="stockModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span>เพิ่มหุ้นที่สนใจ</span>
+      <button onclick="closeModal()" class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="input-row">
+        <input id="tickerInput" type="text" placeholder="พิมพ์ ticker เช่น MINT, SCC, DELTA..." class="ticker-input" oninput="onTickerInput(this.value)" onkeydown="if(event.key==='Enter')addCustomStock()"/>
+        <button onclick="addCustomStock()" class="add-btn">เพิ่ม</button>
+      </div>
+      <div id="suggestions" class="suggestions"></div>
+      <div id="addStatus" class="add-status"></div>
+      <div class="custom-list-label">หุ้นที่เพิ่มไว้ <span id="customCount"></span></div>
+      <div id="customList" class="custom-list"></div>
+      <div class="suggest-popular">
+        <div class="suggest-title">หุ้นยอดนิยม SET</div>
+        <div class="suggest-chips">
+          <span class="suggest-chip" onclick="quickAdd('MINT')">MINT</span>
+          <span class="suggest-chip" onclick="quickAdd('SCC')">SCC</span>
+          <span class="suggest-chip" onclick="quickAdd('DELTA')">DELTA</span>
+          <span class="suggest-chip" onclick="quickAdd('PTTGC')">PTTGC</span>
+          <span class="suggest-chip" onclick="quickAdd('IVL')">IVL</span>
+          <span class="suggest-chip" onclick="quickAdd('BH')">BH</span>
+          <span class="suggest-chip" onclick="quickAdd('CENTEL')">CENTEL</span>
+          <span class="suggest-chip" onclick="quickAdd('KTC')">KTC</span>
+          <span class="suggest-chip" onclick="quickAdd('OSP')">OSP</span>
+          <span class="suggest-chip" onclick="quickAdd('HMPRO')">HMPRO</span>
+          <span class="suggest-chip" onclick="quickAdd('TU')">TU</span>
+          <span class="suggest-chip" onclick="quickAdd('BEM')">BEM</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <main class="cards-grid" id="cardsGrid">
@@ -796,45 +912,313 @@
         </div>
         
 </main>
+<div id="customCardsSection"></div>
 
 <footer class="footer">
-  อัปเดตล่าสุด: 31/05/2026 09:40 (ICT) · ข้อมูลจาก Yahoo Finance (.BK) · อัปเดตอัตโนมัติทุก 30 นาที via GitHub Actions<br>
+  อัปเดตล่าสุด: 31/05/2026 10:02 (ICT) · ข้อมูลจาก Yahoo Finance (.BK) · อัปเดตอัตโนมัติทุก 30 นาที via GitHub Actions<br>
   <strong>คำเตือน:</strong> ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน กรุณาศึกษาข้อมูลเพิ่มเติมก่อนตัดสินใจ
 </footer>
 
 <script>
-  // Filter cards by verdict
-  const verdictMap = {};
-  document.querySelectorAll('.stock-card').forEach(card => {
-    const vbox = card.querySelector('.verdict-box');
-    if (vbox) {
-      const cls = [...vbox.classList].find(c => c !== 'verdict-box') || '';
-      card.dataset.verdict = cls;
-    }
-  });
+// ── Filter ──────────────────────────────────────────────────
+document.querySelectorAll('.stock-card').forEach(card => {
+  const vtext = card.querySelector('.verdict-box')?.textContent || '';
+  if (vtext.includes('Strong Buy')) card.dataset.verdict = 'strong-buy';
+  else if (vtext.includes('Strong Sell')) card.dataset.verdict = 'strong-sell';
+  else if (vtext.includes('ซื้อ (Buy)')) card.dataset.verdict = 'buy';
+  else if (vtext.includes('ขาย (Sell)')) card.dataset.verdict = 'sell';
+  else card.dataset.verdict = 'hold';
+});
 
-  // Read verdict from text content instead
-  document.querySelectorAll('.stock-card').forEach(card => {
-    const id = card.id.replace('card-', '');
-    const vtext = card.querySelector('.verdict-box')?.textContent || '';
-    if (vtext.includes('Strong Buy')) card.dataset.verdict = 'strong-buy';
-    else if (vtext.includes('Strong Sell')) card.dataset.verdict = 'strong-sell';
-    else if (vtext.includes('ซื้อ (Buy)')) card.dataset.verdict = 'buy';
-    else if (vtext.includes('ขาย (Sell)')) card.dataset.verdict = 'sell';
-    else card.dataset.verdict = 'hold';
+function filterCards(filter, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.stock-card, .custom-stock-card').forEach(card => {
+    card.style.display = (filter === 'all' || card.dataset.verdict === filter) ? '' : 'none';
   });
+}
 
-  function filterCards(filter, btn) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.stock-card').forEach(card => {
-      if (filter === 'all' || card.dataset.verdict === filter) {
-        card.style.display = '';
-      } else {
-        card.style.display = 'none';
-      }
-    });
+// ── Modal ────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('stockModal').style.display = 'flex';
+  document.getElementById('tickerInput').focus();
+  renderCustomList();
+}
+function closeModal() {
+  document.getElementById('stockModal').style.display = 'none';
+  document.getElementById('addStatus').textContent = '';
+  document.getElementById('tickerInput').value = '';
+  document.getElementById('suggestions').innerHTML = '';
+}
+
+// ── localStorage watchlist ───────────────────────────────────
+const LS_KEY = 'set_custom_watchlist_v2';
+function getCustomList() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+}
+function saveCustomList(list) {
+  localStorage.setItem(LS_KEY, JSON.stringify(list));
+}
+
+// ── Popular tickers autocomplete ─────────────────────────────
+const POPULAR = ['MINT','SCC','DELTA','PTTGC','IVL','BH','CENTEL','KTC','OSP','HMPRO',
+  'TU','BEM','CPN','GLOBAL','BJC','ERW','MAJOR','MTC','SAWAD','TIDLOR',
+  'GPSC','RATCH','EGCO','BANPU','IRPC','TOP','SPRC','ESSO',
+  'KKP','TISCO','TCAP','TMB','LHFG','ASK',
+  'BGRIM','BCPG','SPCG','EA','AMATA','WHA',
+  'DTAC','JMT','AEONTS','NOBLE','SPALI','LH','AP','SIRI','ORI'];
+
+function onTickerInput(val) {
+  const v = val.toUpperCase().trim();
+  const box = document.getElementById('suggestions');
+  if (!v) { box.innerHTML=''; return; }
+  const matches = POPULAR.filter(t => t.startsWith(v) && t !== v).slice(0, 6);
+  box.innerHTML = matches.map(t =>
+    `<span class="sug-item" onclick="document.getElementById('tickerInput').value='${t}';document.getElementById('suggestions').innerHTML='';addCustomStock()">${t}</span>`
+  ).join('');
+}
+
+// ── Add stock ────────────────────────────────────────────────
+async function addCustomStock() {
+  const raw = document.getElementById('tickerInput').value.trim().toUpperCase();
+  if (!raw) return;
+  const ticker = raw.endsWith('.BK') ? raw.replace('.BK','') : raw;
+  const list = getCustomList();
+  const status = document.getElementById('addStatus');
+
+  if (list.includes(ticker)) {
+    status.textContent = `${ticker} อยู่ในรายการแล้ว`;
+    status.style.color = '#fbbf24';
+    return;
   }
+
+  status.textContent = `กำลังดึงข้อมูล ${ticker}...`;
+  status.style.color = '#94a3b8';
+
+  const ok = await fetchAndRenderCustomCard(ticker);
+  if (ok) {
+    list.push(ticker);
+    saveCustomList(list);
+    renderCustomList();
+    document.getElementById('tickerInput').value = '';
+    document.getElementById('suggestions').innerHTML = '';
+    status.textContent = `✓ เพิ่ม ${ticker} สำเร็จ`;
+    status.style.color = '#22c55e';
+  } else {
+    status.textContent = `ไม่พบข้อมูล ${ticker} — ตรวจสอบชื่อ ticker อีกครั้ง`;
+    status.style.color = '#ef4444';
+  }
+}
+
+function quickAdd(ticker) {
+  document.getElementById('tickerInput').value = ticker;
+  addCustomStock();
+}
+
+// ── Yahoo Finance fetch (browser-side) ───────────────────────
+async function fetchYahoo(symbol) {
+  const urls = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=3mo&interval=1d&events=div`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?range=3mo&interval=1d`,
+    `https://corsproxy.io/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=3mo&interval=1d`)}`,
+  ];
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, {headers:{'Accept':'application/json'}});
+      if (!r.ok) continue;
+      const data = await r.json();
+      const result = data?.chart?.result?.[0];
+      if (result) return result;
+    } catch {}
+  }
+  return null;
+}
+
+// ── JS Technical Indicators ──────────────────────────────────
+function calcRSI(closes, period=14) {
+  if (closes.length < period+1) return 50;
+  let gains=0, losses=0;
+  for (let i=closes.length-period; i<closes.length; i++) {
+    const d = closes[i] - closes[i-1];
+    if (d>0) gains+=d; else losses-=d;
+  }
+  const avgG=gains/period, avgL=losses/period;
+  if (avgL===0) return 100;
+  return +(100 - 100/(1+avgG/avgL)).toFixed(2);
+}
+
+function calcEMA(arr, span) {
+  const k = 2/(span+1);
+  let ema = arr[0];
+  const out = [ema];
+  for (let i=1; i<arr.length; i++) { ema = arr[i]*k + ema*(1-k); out.push(ema); }
+  return out;
+}
+
+function calcMACD(closes) {
+  const ema12 = calcEMA(closes,12), ema26 = calcEMA(closes,26);
+  const macd = ema12.map((v,i)=>v-ema26[i]);
+  const signal = calcEMA(macd,9);
+  const hist = macd[macd.length-1] - signal[signal.length-1];
+  return {macd:+macd[macd.length-1].toFixed(4), signal:+signal[signal.length-1].toFixed(4), hist:+hist.toFixed(4)};
+}
+
+function calcBB(closes, period=20) {
+  const slice = closes.slice(-period);
+  const mean = slice.reduce((a,b)=>a+b,0)/period;
+  const std = Math.sqrt(slice.reduce((a,b)=>a+(b-mean)**2,0)/period);
+  return {upper:+(mean+2*std).toFixed(2), mid:+mean.toFixed(2), lower:+(mean-2*std).toFixed(2)};
+}
+
+function scoreSignals(price, rsi, macdHist, bb, volRatio, mom10, ma20, ma50) {
+  let score=0, signals=[];
+  if (rsi<30) { score+=2; signals.push({t:'bullish',l:'RSI Oversold',d:`RSI=${rsi} สัญญาณซื้อ`}); }
+  else if (rsi>70) { score-=2; signals.push({t:'bearish',l:'RSI Overbought',d:`RSI=${rsi} สัญญาณขาย`}); }
+  if (macdHist>0) { score+=1; signals.push({t:'bullish',l:'MACD Bullish',d:`histogram=${macdHist}`}); }
+  else { score-=1; signals.push({t:'bearish',l:'MACD Bearish',d:`histogram=${macdHist}`}); }
+  if (price<=bb.lower) { score+=2; signals.push({t:'bullish',l:'BB Lower Touch',d:'ราคาแตะ Lower Band'}); }
+  else if (price>=bb.upper) { score-=2; signals.push({t:'bearish',l:'BB Upper Touch',d:'ราคาแตะ Upper Band'}); }
+  if (volRatio>2) { score+=(mom10>0?1:-1); signals.push({t:'alert',l:'Volume Spike',d:`${volRatio}x เฉลี่ย`}); }
+  if (mom10>5) { score+=2; signals.push({t:'bullish',l:'Strong Momentum',d:`+${mom10}%`}); }
+  else if (mom10>2) { score+=1; signals.push({t:'bullish',l:'Momentum',d:`+${mom10}%`}); }
+  else if (mom10<-5) { score-=2; signals.push({t:'bearish',l:'Weak Momentum',d:`${mom10}%`}); }
+  else if (mom10<-2) { score-=1; signals.push({t:'bearish',l:'Momentum',d:`${mom10}%`}); }
+  if (ma20>ma50&&price>ma20) { score+=2; signals.push({t:'bullish',l:'MA Alignment',d:'Price>MA20>MA50'}); }
+  else if (ma20<ma50&&price<ma20) { score-=2; signals.push({t:'bearish',l:'MA Downtrend',d:'Price<MA20<MA50'}); }
+  let verdict, vc;
+  if (score>=4) { verdict='ซื้อ (Strong Buy)'; vc='strong-buy'; }
+  else if (score>=2) { verdict='ซื้อ (Buy)'; vc='buy'; }
+  else if (score<=-4) { verdict='ขาย (Strong Sell)'; vc='strong-sell'; }
+  else if (score<=-2) { verdict='ขาย (Sell)'; vc='sell'; }
+  else { verdict='ถือ (Hold)'; vc='hold'; }
+  return {score, verdict, vc, signals};
+}
+
+// ── Build & inject a custom card ─────────────────────────────
+async function fetchAndRenderCustomCard(ticker) {
+  const symbol = ticker+'.BK';
+  const result = await fetchYahoo(symbol);
+  if (!result) return false;
+
+  const closes = result.indicators?.quote?.[0]?.close?.filter(v=>v!=null) || [];
+  const vols   = result.indicators?.quote?.[0]?.volume?.filter(v=>v!=null) || [];
+  if (closes.length < 30) return false;
+
+  const price   = +closes[closes.length-1].toFixed(2);
+  const prev    = closes[closes.length-2];
+  const change  = +(price-prev).toFixed(2);
+  const changePct = +((change/prev)*100).toFixed(2);
+  const rsi     = calcRSI(closes);
+  const {macd,signal,hist} = calcMACD(closes);
+  const bb      = calcBB(closes);
+  const avgVol  = vols.slice(-20).reduce((a,b)=>a+b,0)/20;
+  const lastVol = vols[vols.length-1];
+  const volRatio= +(lastVol/avgVol).toFixed(2);
+  const mom10   = closes.length>10 ? +((price-closes[closes.length-11])/closes[closes.length-11]*100).toFixed(2) : 0;
+  const ma20    = +(closes.slice(-20).reduce((a,b)=>a+b,0)/20).toFixed(2);
+  const ma50    = +(closes.slice(-50).reduce((a,b)=>a+b,0)/50).toFixed(2);
+  const spark   = closes.slice(-30);
+
+  const sig = scoreSignals(price, rsi, hist, bb, volRatio, mom10, ma20, ma50);
+  renderCustomCardHTML(ticker, price, change, changePct, rsi, hist, bb, volRatio, mom10, ma20, ma50, spark, sig);
+  return true;
+}
+
+function renderCustomCardHTML(ticker, price, change, changePct, rsi, macdHist, bb, volRatio, mom10, ma20, ma50, spark, sig) {
+  const changeColor = changePct>=0 ? '#10b981' : '#ef4444';
+  const arrow = changePct>=0 ? '▲' : '▼';
+  const rsiColor = rsi<30?'#22c55e':rsi>70?'#ef4444':'#3b82f6';
+  const vcColors = {
+    'strong-buy': ['#052e16','#16a34a','#22c55e'],
+    'buy':        ['#052e16','#15803d','#4ade80'],
+    'hold':       ['#1c1917','#92400e','#fbbf24'],
+    'sell':       ['#2d0000','#b91c1c','#f87171'],
+    'strong-sell':['#2d0000','#991b1b','#ef4444'],
+  };
+  const [vbg,vborder,vtext] = vcColors[sig.vc] || ['#1c1917','#6b7280','#d1d5db'];
+  const badgeStyle = {bullish:'background:#052e16;color:#4ade80;border:1px solid #16a34a',bearish:'background:#2d0000;color:#f87171;border:1px solid #b91c1c',neutral:'background:#1c1917;color:#d1d5db;border:1px solid #374151',alert:'background:#1c1400;color:#fbbf24;border:1px solid #92400e'};
+  const badges = sig.signals.map(s=>`<span class="signal-badge" style="${badgeStyle[s.t]}" title="${s.d}">${s.l}</span>`).join('');
+  const W=120,H=40;
+  const mn=Math.min(...spark), mx=Math.max(...spark), rng=mx-mn||1;
+  const pts = spark.map((v,i)=>`${(i*W/(spark.length-1)).toFixed(1)},${(H-((v-mn)/rng)*H).toFixed(1)}`).join(' ');
+  const spColor = spark[spark.length-1]>=spark[0]?'#10b981':'#ef4444';
+  const buls = sig.signals.filter(s=>s.t==='bullish').length;
+  const bers = sig.signals.filter(s=>s.t==='bearish').length;
+  const trend = sig.score>0?'ขาขึ้น':sig.score<0?'ขาลง':'ทรงตัว';
+  const summary = `<strong>${ticker} (เพิ่มเอง)</strong> ราคา ${price.toFixed(2)} บาท เปลี่ยนแปลง ${changePct>=0?'บวก':'ลบ'} ${Math.abs(changePct).toFixed(2)}% ภาพรวมสัญญาณ<strong>${trend}</strong> ${buls} สัญญาณบวก / ${bers} สัญญาณลบ RSI=${rsi} <strong>คำแนะนำ: ${sig.verdict}</strong>`;
+
+  const html = `
+  <div class="stock-card custom-stock-card" id="custom-card-${ticker}" data-verdict="${sig.vc}">
+    <div class="card-header">
+      <div class="ticker-info">
+        <span class="ticker-symbol">${ticker}</span>
+        <span class="sector-tag" style="background:#7c3aed20;color:#a78bfa;border:1px solid #7c3aed40">เพิ่มเอง</span>
+        <button onclick="removeCustomStock('${ticker}')" style="margin-left:auto;background:none;border:none;color:#6b7280;cursor:pointer;font-size:0.8rem" title="ลบออก">✕ ลบ</button>
+      </div>
+      <span class="company-name">${ticker}.BK · Yahoo Finance live</span>
+    </div>
+    <div class="price-row">
+      <div class="price-main">
+        <span class="price-value">${price.toFixed(2)}</span>
+        <span class="price-unit">฿</span>
+      </div>
+      <div class="price-change" style="color:${changeColor}">${arrow} ${Math.abs(changePct).toFixed(2)}% <span style="font-size:.75rem;opacity:.8">(${change>=0?'+':''}${change.toFixed(2)})</span></div>
+    </div>
+    <div class="sparkline-container">
+      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+        <polyline points="${pts}" fill="none" stroke="${spColor}" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="indicators-grid">
+      <div class="indicator"><span class="ind-label">RSI(14)</span><span class="ind-value" style="color:${rsiColor}">${rsi}</span><div class="rsi-bar"><div style="width:${Math.min(rsi,100)}%;background:${rsiColor}"></div></div></div>
+      <div class="indicator"><span class="ind-label">MACD Hist</span><span class="ind-value" style="color:${macdHist>0?'#22c55e':'#ef4444'}">${macdHist>=0?'+':''}${macdHist.toFixed(4)}</span></div>
+      <div class="indicator"><span class="ind-label">BB Upper</span><span class="ind-value">${price.toFixed(2)} / ${bb.upper}</span></div>
+      <div class="indicator"><span class="ind-label">Vol Ratio</span><span class="ind-value" style="color:${volRatio>1.5?'#fbbf24':'#9ca3af'}">${volRatio}x</span></div>
+      <div class="indicator"><span class="ind-label">MA20/50</span><span class="ind-value">${ma20} / ${ma50}</span></div>
+      <div class="indicator"><span class="ind-label">Mom 10d</span><span class="ind-value" style="color:${mom10>=0?'#22c55e':'#ef4444'}">${mom10>=0?'+':''}${mom10.toFixed(2)}%</span></div>
+    </div>
+    <div class="signals-row">${badges}</div>
+    <div class="verdict-box" style="background:${vbg};border:1px solid ${vborder};color:${vtext}">${sig.verdict} (score: ${sig.score>=0?'+':''}${sig.score})</div>
+    <div class="ai-summary">${summary}</div>
+  </div>`;
+
+  const section = document.getElementById('customCardsSection');
+  let grid = document.getElementById('customCardsGrid');
+  if (!grid) {
+    section.innerHTML = '<div style="padding:0.5rem 2rem;color:#6b7280;font-size:0.8rem;border-top:1px solid #2a2a3a">หุ้นที่เพิ่มเอง (ดึงข้อมูล live จากเบราว์เซอร์)</div><div class="cards-grid" id="customCardsGrid"></div>';
+    grid = document.getElementById('customCardsGrid');
+  }
+  const existing = document.getElementById(`custom-card-${ticker}`);
+  if (existing) existing.outerHTML = html;
+  else grid.insertAdjacentHTML('beforeend', html);
+}
+
+function removeCustomStock(ticker) {
+  const list = getCustomList().filter(t=>t!==ticker);
+  saveCustomList(list);
+  document.getElementById(`custom-card-${ticker}`)?.remove();
+  const grid = document.getElementById('customCardsGrid');
+  if (grid && !grid.children.length) {
+    document.getElementById('customCardsSection').innerHTML = '';
+  }
+  renderCustomList();
+}
+
+function renderCustomList() {
+  const list = getCustomList();
+  document.getElementById('customCount').textContent = list.length ? `(${list.length})` : '';
+  document.getElementById('customList').innerHTML = list.length
+    ? list.map(t=>`<div class="clist-item"><span>${t}.BK</span><button onclick="removeCustomStock('${t}');renderCustomList()" class="clist-remove">ลบ</button></div>`).join('')
+    : '<div style="color:#4b5563;font-size:0.8rem">ยังไม่มีหุ้นที่เพิ่ม</div>';
+}
+
+// ── Load saved custom stocks on page load ─────────────────────
+(async function() {
+  const list = getCustomList();
+  for (const ticker of list) {
+    await fetchAndRenderCustomCard(ticker);
+  }
+})();
 </script>
 </body>
 </html>
