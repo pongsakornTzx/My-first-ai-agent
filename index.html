@@ -263,7 +263,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-s
   <div class="ov-sep"></div>
   <div class="ov-item"><span class="ov-label">RSI เฉลี่ย</span><span class="ov-val" id="ov-rsi" style="color:#3b82f6">51.1</span></div>
   <div class="ov-sep"></div>
-  <div class="ov-item"><span class="ov-label">อัปเดต</span><span class="ov-val" style="font-size:.75rem">31/05/2026 13:03 (ICT)</span></div>
+  <div class="ov-item"><span class="ov-label">อัปเดต</span><span class="ov-val" style="font-size:.75rem">31/05/2026 13:09 (ICT)</span></div>
 </div>
 
 <!-- MOVERS BAR -->
@@ -338,7 +338,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-s
 </div>
 
 <footer class="footer">
-  อัปเดตล่าสุด: 31/05/2026 13:03 (ICT) · ข้อมูลจาก <strong>ข้อมูลสาธิต · รอ GitHub Actions อัปเดต (จ-ศ 09:30–17:00 ทุก 15 นาที)</strong> · GitHub Actions อัปเดตทุก 15 นาที (ช่วงตลาด SET เปิด)<br>
+  อัปเดตล่าสุด: 31/05/2026 13:09 (ICT) · ข้อมูลจาก <strong>ข้อมูลสาธิต · รอ GitHub Actions อัปเดต (จ-ศ 09:30–17:00 ทุก 15 นาที)</strong> · GitHub Actions อัปเดตทุก 15 นาที (ช่วงตลาด SET เปิด)<br>
   <strong>คำเตือน:</strong> ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน
 </footer>
 
@@ -883,6 +883,71 @@ const POPULAR = ['MINT','SCC','DELTA','PTTGC','IVL','BH','CENTEL','KTC','OSP','H
   'GPSC','RATCH','EGCO','BANPU','IRPC','TOP','SPRC',
   'KKP','TISCO','TCAP','DTAC','JMT','AEONTS','NOBLE','SPALI','LH','AP','EA'];
 
+// Sector lookup for SET stocks (Thai names)
+const SET_SECTORS = {
+  // พลังงาน
+  PTT:'พลังงาน',PTTEP:'พลังงาน',GULF:'พลังงาน',GPSC:'พลังงาน',RATCH:'พลังงาน',
+  EGCO:'พลังงาน',BANPU:'พลังงาน',IRPC:'พลังงาน',TOP:'พลังงาน',SPRC:'พลังงาน',
+  PTTGC:'พลังงาน',EA:'พลังงาน',BCPG:'พลังงาน',SUSCO:'พลังงาน',
+  // การเงิน
+  KBANK:'การเงิน',SCB:'การเงิน',BBL:'การเงิน',KTB:'การเงิน',BAY:'การเงิน',
+  TMB:'การเงิน',TISCO:'การเงิน',KKP:'การเงิน',TCAP:'การเงิน',LHFG:'การเงิน',
+  KTC:'การเงิน',AEONTS:'การเงิน',MTC:'การเงิน',SAWAD:'การเงิน',TIDLOR:'การเงิน',
+  JMT:'การเงิน',
+  // โทรคมนาคม
+  ADVANC:'โทรคมนาคม',TRUE:'โทรคมนาคม',DTAC:'โทรคมนาคม',INTUCH:'โทรคมนาคม',
+  // คมนาคม
+  AOT:'คมนาคม',BEM:'คมนาคม',BTS:'คมนาคม',AAV:'คมนาคม',THAI:'คมนาคม',
+  // พาณิชย์
+  CPALL:'พาณิชย์',HMPRO:'พาณิชย์',GLOBAL:'พาณิชย์',BJC:'พาณิชย์',MAKRO:'พาณิชย์',
+  OSP:'พาณิชย์',COM7:'พาณิชย์',
+  // อสังหาริมทรัพย์
+  LH:'อสังหาริมทรัพย์',AP:'อสังหาริมทรัพย์',SPALI:'อสังหาริมทรัพย์',
+  NOBLE:'อสังหาริมทรัพย์',CPN:'อสังหาริมทรัพย์',
+  // สุขภาพ
+  BDMS:'สุขภาพ',BH:'สุขภาพ',BCH:'สุขภาพ',RJH:'สุขภาพ',CHG:'สุขภาพ',
+  // อาหารและเครื่องดื่ม
+  MINT:'อาหาร',TU:'อาหาร',CPF:'อาหาร',OSP:'อาหาร',CBG:'อาหาร',
+  // วัสดุก่อสร้าง/อุตสาหกรรม
+  SCC:'วัสดุ',SCCC:'วัสดุ',DCC:'วัสดุ',
+  // อิเล็กทรอนิกส์/เทคโนโลยี
+  DELTA:'เทคโนโลยี',HANA:'เทคโนโลยี',KCE:'เทคโนโลยี',
+  // ปิโตรเคมี
+  IVL:'ปิโตรเคมี',
+  // บันเทิง/ท่องเที่ยว
+  CENTEL:'ท่องเที่ยว',ERW:'ท่องเที่ยว',MAJOR:'ท่องเที่ยว',
+};
+
+// Map Yahoo Finance English sector → Thai
+const YAHOO_SECTOR_MAP = {
+  'Energy':'พลังงาน','Financial Services':'การเงิน','Financials':'การเงิน',
+  'Communication Services':'โทรคมนาคม','Industrials':'คมนาคม',
+  'Consumer Defensive':'พาณิชย์','Consumer Cyclical':'พาณิชย์',
+  'Real Estate':'อสังหาริมทรัพย์','Healthcare':'สุขภาพ',
+  'Basic Materials':'วัสดุ','Technology':'เทคโนโลยี',
+  'Utilities':'สาธารณูปโภค',
+};
+
+async function fetchSector(ticker) {
+  // 1. Try local lookup first
+  if (SET_SECTORS[ticker]) return SET_SECTORS[ticker];
+  // 2. Try Yahoo Finance quoteSummary
+  const urls = [
+    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}.BK?modules=assetProfile`,
+    `https://corsproxy.io/?url=https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}.BK?modules=assetProfile`,
+  ];
+  for (const url of urls) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const j = await r.json();
+      const eng = j?.quoteSummary?.result?.[0]?.assetProfile?.sector;
+      if (eng) return YAHOO_SECTOR_MAP[eng] || eng;
+    } catch{}
+  }
+  return 'อื่นๆ';
+}
+
 function onTickerInput(val) {
   const v = val.toUpperCase().trim();
   const box = document.getElementById('suggestions');
@@ -933,7 +998,10 @@ async function fetchYahoo(symbol) {
 
 // ── FETCH + MERGE custom stock into allStocks ─────────────────
 async function fetchAndMergeCustomStock(ticker) {
-  const result = await fetchYahoo(ticker+'.BK');
+  const [result, sector] = await Promise.all([
+    fetchYahoo(ticker+'.BK'),
+    fetchSector(ticker),
+  ]);
   if (!result) return false;
   const closes = result.indicators?.quote?.[0]?.close?.filter(v=>v!=null)||[];
   const vols   = result.indicators?.quote?.[0]?.volume?.filter(v=>v!=null)||[];
@@ -993,7 +1061,7 @@ async function fetchAndMergeCustomStock(ticker) {
     `→ <strong>${verdict}</strong> (score ${score>=0?'+':''}${score})`;
 
   const stockData = {
-    ticker, name:ticker, sector:'เพิ่มเอง',
+    ticker, name:ticker, sector: sector || 'อื่นๆ',
     price, open:openP, high:highP, low:lowP,
     change, change_pct:changePct,
     volume_k:volK, value_m:valM,
