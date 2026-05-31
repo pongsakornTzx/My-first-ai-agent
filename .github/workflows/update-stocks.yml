@@ -1,0 +1,51 @@
+name: Update SET Stock Dashboard
+
+on:
+  schedule:
+    # Every 30 minutes during Thai market hours (Mon-Fri 09:30-17:00 ICT = 02:30-10:00 UTC)
+    - cron: '*/30 2-10 * * 1-5'
+    # Also run once at market open and close
+    - cron: '30 2 * * 1-5'   # 09:30 ICT
+    - cron: '0 10 * * 1-5'   # 17:00 ICT
+  workflow_dispatch:           # Allow manual trigger from GitHub UI
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  update-dashboard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas numpy
+
+      - name: Fetch data & generate dashboard
+        run: |
+          python scripts/fetch_set_data.py
+
+      - name: Commit and push updated index.html
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "auto: update SET dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi

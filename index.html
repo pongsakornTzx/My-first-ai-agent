@@ -1,12 +1,840 @@
-<!doctype html>
-<html lang="en" class="h-full">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LineAgent Pro - Autonomous AI Assistant</title>
-  </head>
-  <body class="h-full bg-slate-950 text-slate-50 font-sans">
-    <div id="root" class="h-full"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SET Thailand — AI Stock Analysis</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --text: #e2e8f0;
+    --muted: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, sans-serif; min-height: 100vh; }
+  .header {
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a0a2e 50%, #0a1628 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .header-icon { font-size: 2rem; }
+  .header-title { font-size: 1.5rem; font-weight: 700; color: #fff; }
+  .header-sub { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+  .header-badge {
+    margin-left: auto; background: #052e16; color: #22c55e;
+    border: 1px solid #16a34a; border-radius: 999px;
+    padding: 0.3rem 0.8rem; font-size: 0.75rem; font-weight: 600;
+  }
+  .overview-bar {
+    display: flex; flex-wrap: wrap; gap: 1rem;
+    padding: 1rem 2rem; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .ov-item { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; min-width: 80px; }
+  .ov-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; }
+  .ov-val { font-size: 1.1rem; font-weight: 700; }
+  .movers-bar {
+    display: flex; gap: 2rem; padding: 0.8rem 2rem;
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .movers-section { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .movers-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+  .mover { font-size: 0.85rem; background: var(--surface); padding: 0.2rem 0.6rem; border-radius: 6px; }
+  .filter-bar {
+    padding: 1rem 2rem; display: flex; gap: 0.5rem; flex-wrap: wrap;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  .filter-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 0.3rem 0.9rem; border-radius: 999px;
+    cursor: pointer; font-size: 0.8rem; transition: all 0.2s;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: #1e3a5f; border-color: #3b82f6; color: #93c5fd;
+  }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 1.25rem; padding: 1.5rem 2rem;
+  }
+  .stock-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .stock-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .card-header { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; }
+  .ticker-info { display: flex; align-items: center; gap: 0.5rem; }
+  .ticker-symbol { font-size: 1.2rem; font-weight: 800; color: #fff; }
+  .sector-tag { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 600; }
+  .company-name { font-size: 0.85rem; color: var(--muted); }
+  .price-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.5rem; }
+  .price-main { display: flex; align-items: baseline; gap: 0.2rem; }
+  .price-value { font-size: 1.8rem; font-weight: 800; color: #fff; }
+  .price-unit { font-size: 0.9rem; color: var(--muted); }
+  .price-change { font-size: 0.95rem; font-weight: 700; }
+  .sparkline-container { margin: 0.5rem 0; }
+  .indicators-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.5rem; margin: 0.75rem 0;
+  }
+  .indicator {
+    background: var(--surface2); border-radius: 8px; padding: 0.5rem;
+    display: flex; flex-direction: column; gap: 0.1rem;
+  }
+  .ind-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; }
+  .ind-value { font-size: 0.85rem; font-weight: 700; }
+  .rsi-bar { height: 3px; background: #2a2a3a; border-radius: 2px; margin-top: 0.2rem; overflow: hidden; }
+  .rsi-bar div { height: 100%; border-radius: 2px; }
+  .signals-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.75rem 0; }
+  .signal-badge {
+    font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 999px;
+    font-weight: 600; cursor: default; white-space: nowrap;
+  }
+  .verdict-box {
+    border-radius: 8px; padding: 0.6rem 1rem; text-align: center;
+    font-weight: 700; font-size: 0.9rem; margin: 0.5rem 0;
+  }
+  .ai-summary {
+    font-size: 0.78rem; color: #94a3b8; line-height: 1.6;
+    background: var(--surface2); border-radius: 8px; padding: 0.75rem;
+    margin-top: 0.5rem; border-left: 3px solid #3b82f6;
+  }
+  .footer {
+    text-align: center; padding: 2rem; color: var(--muted); font-size: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  .pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:0.5 } }
+  @media(max-width:600px) {
+    .cards-grid { grid-template-columns: 1fr; padding: 1rem; }
+    .header { padding: 1rem; }
+    .overview-bar { padding: 0.75rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <span class="header-icon">📈</span>
+  <div>
+    <div class="header-title">SET Thailand — AI Stock Analysis</div>
+    <div class="header-sub">ระบบวิเคราะห์หุ้นไทย · Data + Signal + AI Summary · อัปเดตทุก 30 นาที</div>
+  </div>
+  <div class="header-badge">
+    <span class="pulse">●</span> Live Data
+  </div>
+</header>
+
+
+    <div class="overview-bar">
+      <div class="ov-item"><span class="ov-label">หุ้นทั้งหมด</span><span class="ov-val">10</span></div>
+      <div class="ov-item"><span class="ov-label">สัญญาณบวก</span><span class="ov-val" style="color:#22c55e">6</span></div>
+      <div class="ov-item"><span class="ov-label">สัญญาณลบ</span><span class="ov-val" style="color:#ef4444">4</span></div>
+      <div class="ov-item"><span class="ov-label">ทรงตัว</span><span class="ov-val" style="color:#fbbf24">0</span></div>
+      <div class="ov-item"><span class="ov-label">RSI เฉลี่ย</span><span class="ov-val" style="color:#3b82f6">51.1</span></div>
+      <div class="ov-item"><span class="ov-label">อัปเดต</span><span class="ov-val" style="font-size:0.8rem">31/05/2026 09:40 (ICT)</span></div>
+    </div>
+    
+
+    <div class="movers-bar">
+      <div class="movers-section">
+        <span class="movers-title" style="color:#22c55e">TOP ขึ้น</span>
+        <div class="mover"><strong style="color:#22c55e">GULF</strong> +3.03%</div><div class="mover"><strong style="color:#22c55e">KBANK</strong> +1.06%</div><div class="mover"><strong style="color:#22c55e">ADVANC</strong> +0.92%</div>
+      </div>
+      <div class="movers-section">
+        <span class="movers-title" style="color:#ef4444">TOP ลง</span>
+        <div class="mover"><strong style="color:#ef4444">TRUE</strong> -1.76%</div><div class="mover"><strong style="color:#ef4444">AOT</strong> -0.85%</div><div class="mover"><strong style="color:#ef4444">PTT</strong> -0.79%</div>
+      </div>
+    </div>
+    
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterCards('all', this)">ทั้งหมด</button>
+  <button class="filter-btn" onclick="filterCards('strong-buy', this)">Strong Buy</button>
+  <button class="filter-btn" onclick="filterCards('buy', this)">Buy</button>
+  <button class="filter-btn" onclick="filterCards('hold', this)">Hold</button>
+  <button class="filter-btn" onclick="filterCards('sell', this)">Sell</button>
+  <button class="filter-btn" onclick="filterCards('strong-sell', this)">Strong Sell</button>
+</div>
+
+<main class="cards-grid" id="cardsGrid">
+
+        <div class="stock-card" id="card-GULF">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">GULF</span>
+              <span class="sector-tag" style="background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40">พลังงาน</span>
+            </div>
+            <span class="company-name">กัลฟ์</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">42.50</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#10b981">
+              ▲ 3.03%
+              <span style="font-size:0.75rem;opacity:0.8">(+1.25)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,40.0 4.1,37.4 8.3,35.7 12.4,34.0 16.6,31.5 20.7,28.9 24.8,27.2 29.0,23.0 33.1,20.4 37.2,18.7 41.4,17.0 45.5,14.5 49.7,11.9 53.8,10.2 57.9,11.9 62.1,8.5 66.2,6.0 70.3,3.4 74.5,6.0 78.6,3.4 82.8,1.7 86.9,3.4 91.0,0.0 95.2,2.6 99.3,5.1 103.4,3.4 107.6,1.7 111.7,3.4 115.9,6.0 120.0,6.0" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">68.5</span>
+              <div class="rsi-bar"><div style="width:68.5%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#22c55e">+0.2300</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">42.50 / 43.50</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#fbbf24">3.25x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">40.50 / 39.20</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#22c55e">+8.30%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="MACD histogram=0.2300 บวก">MACD Bullish</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="ราคาอยู่เหนือ Midline แนวโน้มบวก">BB Mid-Upper</span><span class="signal-badge" style="background:#1c1400;color:#fbbf24;border:1px solid #92400e" title="ปริมาณซื้อขาย 3.25x ค่าเฉลี่ย!">Volume Spike</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="โมเมนตัม +8.3% (10 วัน)">Strong Momentum</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="Price > MA20 > MA50 เทรนด์ขึ้น">MA Alignment</span></div>
+
+          <div class="verdict-box" style="background:#052e16;border:1px solid #16a34a;color:#22c55e">
+            ซื้อ (Strong Buy)  (score: +7)
+          </div>
+
+          <div class="ai-summary"><strong>GULF (กัลฟ์)</strong> ราคาปัจจุบัน 42.50 บาท เปลี่ยนแปลงบวก 3.03% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาขึ้น</strong> โดยมี 4 สัญญาณบวก และ 0 สัญญาณลบ RSI อยู่ที่ 68.5 (เริ่ม Overbought) ปริมาณซื้อขายสูงกว่าปกติมาก (3.25x เฉลี่ย) โมเมนตัม 10 วันเพิ่มขึ้น 8.3% <strong>คำแนะนำ: ซื้อ (Strong Buy)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-KBANK">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">KBANK</span>
+              <span class="sector-tag" style="background:#3b82f620;color:#3b82f6;border:1px solid #3b82f640">การเงิน</span>
+            </div>
+            <span class="company-name">กสิกรไทย</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">142.50</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#10b981">
+              ▲ 1.06%
+              <span style="font-size:0.75rem;opacity:0.8">(+1.50)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,40.0 4.1,36.9 8.3,33.8 12.4,30.8 16.6,27.7 20.7,28.9 24.8,24.6 29.0,21.5 33.1,22.8 37.2,18.5 41.4,15.4 45.5,16.6 49.7,12.3 53.8,9.2 57.9,10.5 62.1,6.2 66.2,3.1 70.3,4.3 74.5,1.8 78.6,3.7 82.8,6.2 86.9,3.1 91.0,0.0 95.2,1.8 99.3,4.3 103.4,2.5 107.6,3.7 111.7,5.5 115.9,3.1 120.0,6.2" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">58.3</span>
+              <div class="rsi-bar"><div style="width:58.3%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#22c55e">+0.2300</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">142.50 / 148.00</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#9ca3af">1.35x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">140.50 / 137.80</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#22c55e">+3.20%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#1c1917;color:#d1d5db;border:1px solid #374151" title="RSI=58.3 แนวโน้มกลาง">RSI Neutral</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="MACD histogram=0.2300 บวก">MACD Bullish</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="ราคาอยู่เหนือ Midline แนวโน้มบวก">BB Mid-Upper</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="โมเมนตัม +3.2% (10 วัน)">Positive Momentum</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="Price > MA20 > MA50 เทรนด์ขึ้น">MA Alignment</span></div>
+
+          <div class="verdict-box" style="background:#052e16;border:1px solid #16a34a;color:#22c55e">
+            ซื้อ (Strong Buy)  (score: +5)
+          </div>
+
+          <div class="ai-summary"><strong>KBANK (กสิกรไทย)</strong> ราคาปัจจุบัน 142.50 บาท เปลี่ยนแปลงบวก 1.06% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาขึ้น</strong> โดยมี 4 สัญญาณบวก และ 0 สัญญาณลบ RSI อยู่ที่ 58.3 (กลาง) ปริมาณซื้อขายปกติ (1.35x เฉลี่ย) โมเมนตัม 10 วันเพิ่มขึ้น 3.2% <strong>คำแนะนำ: ซื้อ (Strong Buy)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-ADVANC">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">ADVANC</span>
+              <span class="sector-tag" style="background:#06b6d420;color:#06b6d4;border:1px solid #06b6d440">โทรคมนาคม</span>
+            </div>
+            <span class="company-name">AIS แอดวานซ์</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">219.00</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#10b981">
+              ▲ 0.92%
+              <span style="font-size:0.75rem;opacity:0.8">(+2.00)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,40.0 4.1,37.9 8.3,35.8 12.4,31.6 16.6,27.4 20.7,29.5 24.8,25.3 29.0,23.2 33.1,18.9 37.2,21.1 41.4,16.8 45.5,14.7 49.7,10.5 53.8,12.6 57.9,8.4 62.1,6.3 66.2,7.2 70.3,5.5 74.5,4.2 78.6,5.5 82.8,7.2 86.9,4.2 91.0,2.1 95.2,2.9 99.3,1.3 103.4,0.0 107.6,1.3 111.7,2.9 115.9,0.8 120.0,2.1" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">62.1</span>
+              <div class="rsi-bar"><div style="width:62.1%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#22c55e">+0.2500</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">219.00 / 225.00</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#9ca3af">1.15x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">215.00 / 210.50</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#22c55e">+4.50%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="MACD histogram=0.2500 บวก">MACD Bullish</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="ราคาอยู่เหนือ Midline แนวโน้มบวก">BB Mid-Upper</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="โมเมนตัม +4.5% (10 วัน)">Positive Momentum</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="Price > MA20 > MA50 เทรนด์ขึ้น">MA Alignment</span></div>
+
+          <div class="verdict-box" style="background:#052e16;border:1px solid #16a34a;color:#22c55e">
+            ซื้อ (Strong Buy)  (score: +5)
+          </div>
+
+          <div class="ai-summary"><strong>ADVANC (AIS แอดวานซ์)</strong> ราคาปัจจุบัน 219.00 บาท เปลี่ยนแปลงบวก 0.92% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาขึ้น</strong> โดยมี 4 สัญญาณบวก และ 0 สัญญาณลบ RSI อยู่ที่ 62.1 (กลาง) ปริมาณซื้อขายปกติ (1.15x เฉลี่ย) โมเมนตัม 10 วันเพิ่มขึ้น 4.5% <strong>คำแนะนำ: ซื้อ (Strong Buy)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-BDMS">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">BDMS</span>
+              <span class="sector-tag" style="background:#ec489920;color:#ec4899;border:1px solid #ec489940">สุขภาพ</span>
+            </div>
+            <span class="company-name">กรุงเทพดุสิต</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">24.10</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#10b981">
+              ▲ 0.42%
+              <span style="font-size:0.75rem;opacity:0.8">(+0.10)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,40.0 4.1,35.6 8.3,31.1 12.4,26.7 16.6,22.2 20.7,17.8 24.8,22.2 29.0,13.3 33.1,17.8 37.2,8.9 41.4,13.3 45.5,4.4 49.7,8.9 53.8,0.0 57.9,4.4 62.1,8.9 66.2,0.0 70.3,4.4 74.5,13.3 78.6,8.9 82.8,4.4 86.9,13.3 91.0,8.9 95.2,4.4 99.3,13.3 103.4,8.9 107.6,13.3 111.7,8.9 115.9,13.3 120.0,13.3" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">53.2</span>
+              <div class="rsi-bar"><div style="width:53.2%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#22c55e">+0.0300</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">24.10 / 25.20</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#9ca3af">0.92x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">23.90 / 23.50</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#22c55e">+2.10%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#1c1917;color:#d1d5db;border:1px solid #374151" title="RSI=53.2 แนวโน้มกลาง">RSI Neutral</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="MACD histogram=0.0300 บวก">MACD Bullish</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="ราคาอยู่เหนือ Midline แนวโน้มบวก">BB Mid-Upper</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="โมเมนตัม +2.1% (10 วัน)">Positive Momentum</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="Price > MA20 > MA50 เทรนด์ขึ้น">MA Alignment</span></div>
+
+          <div class="verdict-box" style="background:#052e16;border:1px solid #16a34a;color:#22c55e">
+            ซื้อ (Strong Buy)  (score: +5)
+          </div>
+
+          <div class="ai-summary"><strong>BDMS (กรุงเทพดุสิต)</strong> ราคาปัจจุบัน 24.10 บาท เปลี่ยนแปลงบวก 0.42% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาขึ้น</strong> โดยมี 4 สัญญาณบวก และ 0 สัญญาณลบ RSI อยู่ที่ 53.2 (กลาง) ปริมาณซื้อขายปกติ (0.92x เฉลี่ย) โมเมนตัม 10 วันเพิ่มขึ้น 2.1% <strong>คำแนะนำ: ซื้อ (Strong Buy)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-BBL">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">BBL</span>
+              <span class="sector-tag" style="background:#3b82f620;color:#3b82f6;border:1px solid #3b82f640">การเงิน</span>
+            </div>
+            <span class="company-name">กรุงเทพ</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">155.00</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#10b981">
+              ▲ 0.65%
+              <span style="font-size:0.75rem;opacity:0.8">(+1.00)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,40.0 4.1,36.6 8.3,33.1 12.4,26.2 16.6,22.8 20.7,19.3 24.8,20.7 29.0,15.9 33.1,12.4 37.2,13.8 41.4,9.0 45.5,5.5 49.7,6.9 53.8,4.1 57.9,2.1 62.1,4.1 66.2,0.0 70.3,2.1 74.5,4.1 78.6,2.1 82.8,0.0 86.9,2.1 91.0,4.1 95.2,2.1 99.3,0.0 103.4,2.1 107.6,4.1 111.7,2.1 115.9,4.1 120.0,5.5" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">55.4</span>
+              <div class="rsi-bar"><div style="width:55.4%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#22c55e">+0.1500</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">155.00 / 160.00</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#9ca3af">1.1x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">153.00 / 150.50</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#22c55e">+2.80%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#1c1917;color:#d1d5db;border:1px solid #374151" title="RSI=55.4 แนวโน้มกลาง">RSI Neutral</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="MACD histogram=0.1500 บวก">MACD Bullish</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="ราคาอยู่เหนือ Midline แนวโน้มบวก">BB Mid-Upper</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="โมเมนตัม +2.8% (10 วัน)">Positive Momentum</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="Price > MA20 > MA50 เทรนด์ขึ้น">MA Alignment</span></div>
+
+          <div class="verdict-box" style="background:#052e16;border:1px solid #16a34a;color:#22c55e">
+            ซื้อ (Strong Buy)  (score: +5)
+          </div>
+
+          <div class="ai-summary"><strong>BBL (กรุงเทพ)</strong> ราคาปัจจุบัน 155.00 บาท เปลี่ยนแปลงบวก 0.65% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาขึ้น</strong> โดยมี 4 สัญญาณบวก และ 0 สัญญาณลบ RSI อยู่ที่ 55.4 (กลาง) ปริมาณซื้อขายปกติ (1.1x เฉลี่ย) โมเมนตัม 10 วันเพิ่มขึ้น 2.8% <strong>คำแนะนำ: ซื้อ (Strong Buy)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-SCB">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">SCB</span>
+              <span class="sector-tag" style="background:#3b82f620;color:#3b82f6;border:1px solid #3b82f640">การเงิน</span>
+            </div>
+            <span class="company-name">ไทยพาณิชย์</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">101.50</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#10b981">
+              ▲ 0.49%
+              <span style="font-size:0.75rem;opacity:0.8">(+0.50)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,40.0 4.1,36.4 8.3,30.9 12.4,21.8 16.6,25.5 20.7,18.2 24.8,12.7 29.0,16.4 33.1,7.3 37.2,3.6 41.4,7.3 45.5,0.0 49.7,3.6 53.8,7.3 57.9,1.8 62.1,5.5 66.2,0.0 70.3,7.3 74.5,3.6 78.6,12.7 82.8,18.2 86.9,7.3 91.0,3.6 95.2,9.1 99.3,12.7 103.4,7.3 107.6,3.6 111.7,9.1 115.9,12.7 120.0,12.7" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">51.8</span>
+              <div class="rsi-bar"><div style="width:51.8%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#22c55e">+0.0500</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">101.50 / 105.00</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#9ca3af">0.88x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">101.00 / 100.20</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#22c55e">+1.10%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#1c1917;color:#d1d5db;border:1px solid #374151" title="RSI=51.8 แนวโน้มกลาง">RSI Neutral</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="MACD histogram=0.0500 บวก">MACD Bullish</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="ราคาอยู่เหนือ Midline แนวโน้มบวก">BB Mid-Upper</span><span class="signal-badge" style="background:#052e16;color:#4ade80;border:1px solid #16a34a" title="Price > MA20 > MA50 เทรนด์ขึ้น">MA Alignment</span></div>
+
+          <div class="verdict-box" style="background:#052e16;border:1px solid #16a34a;color:#22c55e">
+            ซื้อ (Strong Buy)  (score: +4)
+          </div>
+
+          <div class="ai-summary"><strong>SCB (ไทยพาณิชย์)</strong> ราคาปัจจุบัน 101.50 บาท เปลี่ยนแปลงบวก 0.49% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาขึ้น</strong> โดยมี 3 สัญญาณบวก และ 0 สัญญาณลบ RSI อยู่ที่ 51.8 (กลาง) ปริมาณซื้อขายปกติ (0.88x เฉลี่ย) โมเมนตัม 10 วันเพิ่มขึ้น 1.1% <strong>คำแนะนำ: ซื้อ (Strong Buy)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-CPALL">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">CPALL</span>
+              <span class="sector-tag" style="background:#10b98120;color:#10b981;border:1px solid #10b98140">พาณิชย์</span>
+            </div>
+            <span class="company-name">ซีพี ออลล์</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">54.75</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#ef4444">
+              ▼ 0.45%
+              <span style="font-size:0.75rem;opacity:0.8">(-0.25)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,0.0 4.1,5.3 8.3,13.3 12.4,5.3 16.6,13.3 20.7,21.3 24.8,26.7 29.0,18.7 33.1,24.0 37.2,32.0 41.4,26.7 45.5,32.0 49.7,40.0 53.8,32.0 57.9,26.7 62.1,32.0 66.2,40.0 70.3,32.0 74.5,26.7 78.6,32.0 82.8,40.0 86.9,32.0 91.0,26.7 95.2,33.3 99.3,40.0 103.4,32.0 107.6,26.7 111.7,32.0 115.9,40.0 120.0,33.3" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">47.3</span>
+              <div class="rsi-bar"><div style="width:47.3%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#ef4444">-0.0400</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">54.75 / 57.50</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#9ca3af">1.05x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">54.80 / 55.30</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#ef4444">-1.20%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#1c1917;color:#d1d5db;border:1px solid #374151" title="RSI=47.3 แนวโน้มกลาง">RSI Neutral</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="MACD histogram=-0.0400 ลบ">MACD Bearish</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="Price < MA20 < MA50 เทรนด์ลง">MA Downtrend</span></div>
+
+          <div class="verdict-box" style="background:#2d0000;border:1px solid #b91c1c;color:#f87171">
+            ขาย (Sell)  (score: -3)
+          </div>
+
+          <div class="ai-summary"><strong>CPALL (ซีพี ออลล์)</strong> ราคาปัจจุบัน 54.75 บาท เปลี่ยนแปลงลบ 0.45% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาลง</strong> โดยมี 0 สัญญาณบวก และ 2 สัญญาณลบ RSI อยู่ที่ 47.3 (กลาง) ปริมาณซื้อขายปกติ (1.05x เฉลี่ย) โมเมนตัม 10 วันลดลง 1.2% <strong>คำแนะนำ: ขาย (Sell)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-PTT">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">PTT</span>
+              <span class="sector-tag" style="background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40">พลังงาน</span>
+            </div>
+            <span class="company-name">ปตท</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">31.50</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#ef4444">
+              ▼ 0.79%
+              <span style="font-size:0.75rem;opacity:0.8">(-0.25)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,0.0 4.1,2.7 8.3,10.7 12.4,6.7 16.6,16.0 20.7,25.3 24.8,28.0 29.0,22.7 33.1,30.7 37.2,33.3 41.4,37.3 45.5,29.3 49.7,25.3 53.8,32.0 57.9,40.0 62.1,36.0 66.2,30.7 70.3,34.7 74.5,29.3 78.6,33.3 82.8,37.3 86.9,32.0 91.0,28.0 95.2,34.7 99.3,38.7 103.4,33.3 107.6,30.7 111.7,36.0 115.9,32.0 120.0,33.3" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">44.2</span>
+              <div class="rsi-bar"><div style="width:44.2%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#ef4444">-0.0400</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">31.50 / 34.10</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#9ca3af">0.95x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">31.80 / 33.20</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#ef4444">-2.30%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#1c1917;color:#d1d5db;border:1px solid #374151" title="RSI=44.2 แนวโน้มกลาง">RSI Neutral</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="MACD histogram=-0.0400 ลบ">MACD Bearish</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="โมเมนตัม -2.3% (10 วัน)">Negative Momentum</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="Price < MA20 < MA50 เทรนด์ลง">MA Downtrend</span></div>
+
+          <div class="verdict-box" style="background:#2d0000;border:1px solid #991b1b;color:#ef4444">
+            ขาย (Strong Sell)  (score: -4)
+          </div>
+
+          <div class="ai-summary"><strong>PTT (ปตท)</strong> ราคาปัจจุบัน 31.50 บาท เปลี่ยนแปลงลบ 0.79% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาลง</strong> โดยมี 0 สัญญาณบวก และ 3 สัญญาณลบ RSI อยู่ที่ 44.2 (กลาง) ปริมาณซื้อขายปกติ (0.95x เฉลี่ย) โมเมนตัม 10 วันลดลง 2.3% <strong>คำแนะนำ: ขาย (Strong Sell)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-AOT">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">AOT</span>
+              <span class="sector-tag" style="background:#8b5cf620;color:#8b5cf6;border:1px solid #8b5cf640">คมนาคม</span>
+            </div>
+            <span class="company-name">ท่าอากาศยาน</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">58.25</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#ef4444">
+              ▼ 0.85%
+              <span style="font-size:0.75rem;opacity:0.8">(-0.50)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,0.0 4.1,4.1 8.3,8.2 12.4,12.2 16.6,16.3 20.7,20.4 24.8,24.5 29.0,26.1 33.1,28.6 37.2,31.0 41.4,32.7 45.5,34.3 49.7,36.7 53.8,38.4 57.9,40.0 62.1,36.7 66.2,32.7 70.3,34.3 74.5,35.9 78.6,38.4 82.8,40.0 86.9,37.6 91.0,35.9 95.2,38.4 99.3,40.0 103.4,37.6 107.6,39.2 111.7,36.7 115.9,38.4 120.0,38.8" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">38.5</span>
+              <div class="rsi-bar"><div style="width:38.5%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#ef4444">-0.1400</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">58.25 / 62.50</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#fbbf24">1.82x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">59.20 / 61.50</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#ef4444">-4.10%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="MACD histogram=-0.1400 ลบ">MACD Bearish</span><span class="signal-badge" style="background:#1c1400;color:#fbbf24;border:1px solid #92400e" title="ปริมาณสูง 1.82x เฉลี่ย">High Volume</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="โมเมนตัม -4.1% (10 วัน)">Negative Momentum</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="Price < MA20 < MA50 เทรนด์ลง">MA Downtrend</span></div>
+
+          <div class="verdict-box" style="background:#2d0000;border:1px solid #991b1b;color:#ef4444">
+            ขาย (Strong Sell)  (score: -4)
+          </div>
+
+          <div class="ai-summary"><strong>AOT (ท่าอากาศยาน)</strong> ราคาปัจจุบัน 58.25 บาท เปลี่ยนแปลงลบ 0.85% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาลง</strong> โดยมี 0 สัญญาณบวก และ 3 สัญญาณลบ RSI อยู่ที่ 38.5 (กลาง) ปริมาณซื้อขายสูงกว่าปกติ (1.82x เฉลี่ย) โมเมนตัม 10 วันลดลง 4.1% <strong>คำแนะนำ: ขาย (Strong Sell)</strong></div>
+        </div>
+        
+        <div class="stock-card" id="card-TRUE">
+          <div class="card-header">
+            <div class="ticker-info">
+              <span class="ticker-symbol">TRUE</span>
+              <span class="sector-tag" style="background:#06b6d420;color:#06b6d4;border:1px solid #06b6d440">โทรคมนาคม</span>
+            </div>
+            <span class="company-name">ทรู คอร์ปอเรชั่น</span>
+          </div>
+
+          <div class="price-row">
+            <div class="price-main">
+              <span class="price-value">8.35</span>
+              <span class="price-unit">฿</span>
+            </div>
+            <div class="price-change" style="color:#ef4444">
+              ▼ 1.76%
+              <span style="font-size:0.75rem;opacity:0.8">(-0.15)</span>
+            </div>
+          </div>
+
+          <div class="sparkline-container">
+            <svg width="120" height="40" viewBox="0 0 120 40">
+              <polyline points="0.0,0.0 4.1,4.4 8.3,8.9 12.4,13.3 16.6,17.8 20.7,22.2 24.8,26.7 29.0,31.1 33.1,22.2 37.2,26.7 41.4,31.1 45.5,35.6 49.7,26.7 53.8,31.1 57.9,35.6 62.1,31.1 66.2,26.7 70.3,31.1 74.5,35.6 78.6,40.0 82.8,31.1 86.9,35.6 91.0,40.0 95.2,31.1 99.3,35.6 103.4,40.0 107.6,31.1 111.7,35.6 115.9,37.8 120.0,37.8" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <span class="ind-label">RSI(14)</span>
+              <span class="ind-value" style="color:#3b82f6">32.1</span>
+              <div class="rsi-bar"><div style="width:32.1%;background:#3b82f6"></div></div>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MACD Hist</span>
+              <span class="ind-value" style="color:#ef4444">-0.0200</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">BB Position</span>
+              <span class="ind-value">8.35 / 9.20</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Vol Ratio</span>
+              <span class="ind-value" style="color:#fbbf24">2.1x</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">MA20/MA50</span>
+              <span class="ind-value">8.60 / 9.10</span>
+            </div>
+            <div class="indicator">
+              <span class="ind-label">Mom 10d</span>
+              <span class="ind-value" style="color:#ef4444">-5.90%</span>
+            </div>
+          </div>
+
+          <div class="signals-row"><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="MACD histogram=-0.0200 ลบ">MACD Bearish</span><span class="signal-badge" style="background:#1c1400;color:#fbbf24;border:1px solid #92400e" title="ปริมาณซื้อขาย 2.1x ค่าเฉลี่ย!">Volume Spike</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="โมเมนตัม -5.9% (10 วัน)">Weak Momentum</span><span class="signal-badge" style="background:#2d0000;color:#f87171;border:1px solid #b91c1c" title="Price < MA20 < MA50 เทรนด์ลง">MA Downtrend</span></div>
+
+          <div class="verdict-box" style="background:#2d0000;border:1px solid #991b1b;color:#ef4444">
+            ขาย (Strong Sell)  (score: -6)
+          </div>
+
+          <div class="ai-summary"><strong>TRUE (ทรู คอร์ปอเรชั่น)</strong> ราคาปัจจุบัน 8.35 บาท เปลี่ยนแปลงลบ 1.76% วันนี้ ภาพรวมสัญญาณเทคนิคเป็น<strong>ขาลง</strong> โดยมี 0 สัญญาณบวก และ 3 สัญญาณลบ RSI อยู่ที่ 32.1 (กลาง) ปริมาณซื้อขายสูงกว่าปกติมาก (2.1x เฉลี่ย) โมเมนตัม 10 วันลดลง 5.9% <strong>คำแนะนำ: ขาย (Strong Sell)</strong></div>
+        </div>
+        
+</main>
+
+<footer class="footer">
+  อัปเดตล่าสุด: 31/05/2026 09:40 (ICT) · ข้อมูลจาก Yahoo Finance (.BK) · อัปเดตอัตโนมัติทุก 30 นาที via GitHub Actions<br>
+  <strong>คำเตือน:</strong> ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน กรุณาศึกษาข้อมูลเพิ่มเติมก่อนตัดสินใจ
+</footer>
+
+<script>
+  // Filter cards by verdict
+  const verdictMap = {};
+  document.querySelectorAll('.stock-card').forEach(card => {
+    const vbox = card.querySelector('.verdict-box');
+    if (vbox) {
+      const cls = [...vbox.classList].find(c => c !== 'verdict-box') || '';
+      card.dataset.verdict = cls;
+    }
+  });
+
+  // Read verdict from text content instead
+  document.querySelectorAll('.stock-card').forEach(card => {
+    const id = card.id.replace('card-', '');
+    const vtext = card.querySelector('.verdict-box')?.textContent || '';
+    if (vtext.includes('Strong Buy')) card.dataset.verdict = 'strong-buy';
+    else if (vtext.includes('Strong Sell')) card.dataset.verdict = 'strong-sell';
+    else if (vtext.includes('ซื้อ (Buy)')) card.dataset.verdict = 'buy';
+    else if (vtext.includes('ขาย (Sell)')) card.dataset.verdict = 'sell';
+    else card.dataset.verdict = 'hold';
+  });
+
+  function filterCards(filter, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.stock-card').forEach(card => {
+      if (filter === 'all' || card.dataset.verdict === filter) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+</script>
+</body>
 </html>
