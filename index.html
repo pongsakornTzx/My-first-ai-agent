@@ -147,6 +147,17 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-s
 .signal-badge{font-size:.6rem;padding:.15rem .4rem;border-radius:3px;font-weight:600;white-space:nowrap;cursor:default;}
 .verdict-box{border-radius:6px;padding:.45rem .8rem;text-align:center;font-weight:700;font-size:.82rem;margin:.4rem 0;}
 .ai-summary{font-size:.72rem;color:#94a3b8;line-height:1.55;background:var(--surface2);border-radius:6px;padding:.6rem;border-left:2px solid var(--accent);margin-top:.4rem;}
+.layer-row{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.4rem;}
+.layer-badge{display:inline-flex;align-items:center;gap:.25rem;border-radius:4px;padding:.15rem .45rem;font-size:.65rem;font-weight:700;border:1px solid;}
+.layer-pos{background:#052e16;color:#22c55e;border-color:#16a34a;}
+.layer-neg{background:#2d0a0a;color:#f87171;border-color:#991b1b;}
+.layer-neu{background:#1c1917;color:#9ca3af;border-color:#374151;}
+.layer-bul{background:#052e16;color:#22c55e;border-color:#16a34a;}
+.layer-bea{background:#2d0a0a;color:#f87171;border-color:#991b1b;}
+.reasons-list{list-style:none;padding:0;margin:.3rem 0 0;display:flex;flex-direction:column;gap:.2rem;}
+.reasons-list li{font-size:.7rem;color:#cbd5e1;padding:.15rem 0;}
+.risk-alert{margin-top:.35rem;padding:.25rem .5rem;background:#2d1a00;border:1px solid #92400e;border-radius:4px;font-size:.67rem;color:#fb923c;}
+.data-disclaimer{margin-top:.3rem;font-size:.62rem;color:#4b5563;font-style:italic;}
 
 /* ── CHART PANEL ── */
 .chart-panel{padding:1rem;display:flex;flex-direction:column;gap:.75rem;height:100%;overflow-y:auto;}
@@ -164,8 +175,37 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-s
 .chart-container{position:relative;height:180px;}
 .chart-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.82rem;}
 .cp-signals{display:flex;flex-wrap:wrap;gap:.3rem;}
-.cp-summary{font-size:.73rem;color:#94a3b8;line-height:1.6;background:var(--surface2);border-radius:6px;padding:.6rem;border-left:2px solid var(--accent);}
+.cp-summary{font-size:.73rem;color:#94a3b8;line-height:1.6;background:var(--surface2);border-radius:6px;padding:.75rem;border-left:2px solid var(--accent);}
 .cp-indicators{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
+
+/* ── MULTI-TIMEFRAME ── */
+.mtf-section{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.6rem;}
+.mtf-title{font-size:.78rem;font-weight:700;color:#e2e8f0;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;}
+.mtf-conf{font-size:.68rem;font-weight:700;padding:.15rem .5rem;border-radius:999px;white-space:nowrap;}
+.mtf-conf.bull{background:#052e16;color:#22c55e;}
+.mtf-conf.bear{background:#2d0a0a;color:#f87171;}
+.mtf-conf.mix{background:#1c1917;color:#fbbf24;}
+.mtf-table{width:100%;border-collapse:collapse;font-size:.72rem;}
+.mtf-table th{color:var(--muted);font-weight:600;text-align:right;padding:.3rem .4rem;border-bottom:1px solid var(--border);font-size:.66rem;text-transform:uppercase;}
+.mtf-table th:first-child{text-align:left;}
+.mtf-table td{padding:.35rem .4rem;text-align:right;border-bottom:1px solid #1a1a26;}
+.mtf-table td:first-child{text-align:left;font-weight:700;color:#fff;}
+.mtf-trend{font-weight:700;padding:.1rem .4rem;border-radius:4px;font-size:.68rem;}
+.mtf-trend.up{background:#052e16;color:#22c55e;}
+.mtf-trend.down{background:#2d0a0a;color:#f87171;}
+.mtf-trend.flat{background:#1c1917;color:#9ca3af;}
+
+/* ── FUNDAMENTALS + BACKTEST ── */
+.fund-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin:.5rem 0;}
+.fund-item{background:var(--surface2);border-radius:6px;padding:.4rem;text-align:center;}
+.fund-label{font-size:.58rem;color:var(--muted);text-transform:uppercase;}
+.fund-value{font-size:.82rem;font-weight:700;margin-top:1px;}
+.bt-box{display:flex;align-items:center;gap:.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.5rem .6rem;margin:.4rem 0;}
+.bt-rate{font-size:1.2rem;font-weight:800;}
+.bt-meta{font-size:.66rem;color:var(--muted);line-height:1.4;}
+.bt-good{color:#22c55e;}
+.bt-mid{color:#fbbf24;}
+.bt-bad{color:#f87171;}
 
 /* ── ADD STOCK MODAL ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;}
@@ -263,7 +303,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-s
   <div class="ov-sep"></div>
   <div class="ov-item"><span class="ov-label">RSI เฉลี่ย</span><span class="ov-val" id="ov-rsi" style="color:#3b82f6">51.1</span></div>
   <div class="ov-sep"></div>
-  <div class="ov-item"><span class="ov-label">อัปเดต</span><span class="ov-val" style="font-size:.75rem">31/05/2026 13:09 (ICT)</span></div>
+  <div class="ov-item"><span class="ov-label">อัปเดต</span><span class="ov-val" style="font-size:.75rem">02/06/2026 22:59 (ICT)</span></div>
 </div>
 
 <!-- MOVERS BAR -->
@@ -338,7 +378,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-s
 </div>
 
 <footer class="footer">
-  อัปเดตล่าสุด: 31/05/2026 13:09 (ICT) · ข้อมูลจาก <strong>ข้อมูลสาธิต · รอ GitHub Actions อัปเดต (จ-ศ 09:30–17:00 ทุก 15 นาที)</strong> · GitHub Actions อัปเดตทุก 15 นาที (ช่วงตลาด SET เปิด)<br>
+  อัปเดตล่าสุด: 02/06/2026 22:59 (ICT) · ข้อมูลจาก <strong>ข้อมูลสาธิต · รอ GitHub Actions อัปเดต (จ-ศ 09:30–17:00 ทุก 15 นาที)</strong> · GitHub Actions อัปเดตทุก 15 นาที (ช่วงตลาด SET เปิด)<br>
   <strong>คำเตือน:</strong> ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน
 </footer>
 
@@ -381,8 +421,92 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-s
 
 <script>
 // ── DATA ──────────────────────────────────────────────────────
-const STOCKS_INITIAL = [{"ticker": "GULF", "name": "กัลฟ์", "sector": "พลังงาน", "price": 42.5, "open": 41.25, "high": 43.0, "low": 41.0, "change": 1.25, "change_pct": 3.03, "volume_k": 45000, "value_m": 1912.5, "rsi": 68.5, "macd_histogram": 0.23, "bb_upper": 43.5, "bb_mid": 40.5, "bb_lower": 37.5, "volume_ratio": 3.25, "momentum_10d": 8.3, "ma20": 40.5, "ma50": 39.2, "sparkline": [38.5, 38.8, 39, 39.2, 39.5, 39.8, 40, 40.5, 40.8, 41, 41.2, 41.5, 41.8, 42, 41.8, 42.2, 42.5, 42.8, 42.5, 42.8, 43, 42.8, 43.2, 42.9, 42.6, 42.8, 43, 42.8, 42.5, 42.5], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 7, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=68.5"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.2300"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "alert", "label": "Vol Spike", "detail": "3.25x"}, {"type": "bullish", "label": "Mom+", "detail": "+8.3%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": "<strong>GULF (กัลฟ์)</strong> 42.50฿ เปลี่ยนแปลงบวก 3.03% ภาพรวม<strong>ขาขึ้น</strong> — 4↑ 0↓ สัญญาณ RSI 68.5 (กลาง) · ปริมาณสูงมาก 3.25x · โมเมนตัม +8.3% <strong>→ Strong Buy</strong>"}, {"ticker": "KBANK", "name": "กสิกรไทย", "sector": "การเงิน", "price": 142.5, "open": 141.0, "high": 143.5, "low": 140.5, "change": 1.5, "change_pct": 1.06, "volume_k": 4200, "value_m": 598.5, "rsi": 58.3, "macd_histogram": 0.23, "bb_upper": 148.0, "bb_mid": 140.5, "bb_lower": 133.0, "volume_ratio": 1.35, "momentum_10d": 3.2, "ma20": 140.5, "ma50": 137.8, "sparkline": [137, 137.5, 138, 138.5, 139, 138.8, 139.5, 140, 139.8, 140.5, 141, 140.8, 141.5, 142, 141.8, 142.5, 143, 142.8, 143.2, 142.9, 142.5, 143, 143.5, 143.2, 142.8, 143.1, 142.9, 142.6, 143.0, 142.5], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=58.3"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.2300"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "Mom↑", "detail": "+3.2%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": "<strong>KBANK (กสิกรไทย)</strong> 142.50฿ เปลี่ยนแปลงบวก 1.06% ภาพรวม<strong>ขาขึ้น</strong> — 4↑ 0↓ สัญญาณ RSI 58.3 (กลาง) · ปริมาณปกติ 1.35x · โมเมนตัม +3.2% <strong>→ Strong Buy</strong>"}, {"ticker": "ADVANC", "name": "AIS แอดวานซ์", "sector": "โทรคมนาคม", "price": 219.0, "open": 217.0, "high": 220.0, "low": 216.5, "change": 2.0, "change_pct": 0.92, "volume_k": 2100, "value_m": 459.9, "rsi": 62.1, "macd_histogram": 0.25, "bb_upper": 225.0, "bb_mid": 215.0, "bb_lower": 205.0, "volume_ratio": 1.15, "momentum_10d": 4.5, "ma20": 215.0, "ma50": 210.5, "sparkline": [210, 210.5, 211, 212, 213, 212.5, 213.5, 214, 215, 214.5, 215.5, 216, 217, 216.5, 217.5, 218, 217.8, 218.2, 218.5, 218.2, 217.8, 218.5, 219, 218.8, 219.2, 219.5, 219.2, 218.8, 219.3, 219.0], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=62.1"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.2500"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "Mom↑", "detail": "+4.5%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": "<strong>ADVANC (AIS แอดวานซ์)</strong> 219.00฿ เปลี่ยนแปลงบวก 0.92% ภาพรวม<strong>ขาขึ้น</strong> — 4↑ 0↓ สัญญาณ RSI 62.1 (กลาง) · ปริมาณปกติ 1.15x · โมเมนตัม +4.5% <strong>→ Strong Buy</strong>"}, {"ticker": "BDMS", "name": "กรุงเทพดุสิต", "sector": "สุขภาพ", "price": 24.1, "open": 24.0, "high": 24.4, "low": 23.9, "change": 0.1, "change_pct": 0.42, "volume_k": 8900, "value_m": 214.49, "rsi": 53.2, "macd_histogram": 0.03, "bb_upper": 25.2, "bb_mid": 23.9, "bb_lower": 22.6, "volume_ratio": 0.92, "momentum_10d": 2.1, "ma20": 23.9, "ma50": 23.5, "sparkline": [23.5, 23.6, 23.7, 23.8, 23.9, 24, 23.9, 24.1, 24, 24.2, 24.1, 24.3, 24.2, 24.4, 24.3, 24.2, 24.4, 24.3, 24.1, 24.2, 24.3, 24.1, 24.2, 24.3, 24.1, 24.2, 24.1, 24.2, 24.1, 24.1], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=53.2"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.0300"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "Mom↑", "detail": "+2.1%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": "<strong>BDMS (กรุงเทพดุสิต)</strong> 24.10฿ เปลี่ยนแปลงบวก 0.42% ภาพรวม<strong>ขาขึ้น</strong> — 4↑ 0↓ สัญญาณ RSI 53.2 (กลาง) · ปริมาณปกติ 0.92x · โมเมนตัม +2.1% <strong>→ Strong Buy</strong>"}, {"ticker": "BBL", "name": "กรุงเทพ", "sector": "การเงิน", "price": 155.0, "open": 154.0, "high": 156.0, "low": 153.5, "change": 1.0, "change_pct": 0.65, "volume_k": 3100, "value_m": 480.5, "rsi": 55.4, "macd_histogram": 0.15, "bb_upper": 160.0, "bb_mid": 153.0, "bb_lower": 146.0, "volume_ratio": 1.1, "momentum_10d": 2.8, "ma20": 153.0, "ma50": 150.5, "sparkline": [150, 150.5, 151, 152, 152.5, 153, 152.8, 153.5, 154, 153.8, 154.5, 155, 154.8, 155.2, 155.5, 155.2, 155.8, 155.5, 155.2, 155.5, 155.8, 155.5, 155.2, 155.5, 155.8, 155.5, 155.2, 155.5, 155.2, 155.0], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=55.4"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.1500"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "Mom↑", "detail": "+2.8%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": "<strong>BBL (กรุงเทพ)</strong> 155.00฿ เปลี่ยนแปลงบวก 0.65% ภาพรวม<strong>ขาขึ้น</strong> — 4↑ 0↓ สัญญาณ RSI 55.4 (กลาง) · ปริมาณปกติ 1.1x · โมเมนตัม +2.8% <strong>→ Strong Buy</strong>"}, {"ticker": "SCB", "name": "ไทยพาณิชย์", "sector": "การเงิน", "price": 101.5, "open": 101.0, "high": 102.5, "low": 100.5, "change": 0.5, "change_pct": 0.49, "volume_k": 5600, "value_m": 568.4, "rsi": 51.8, "macd_histogram": 0.05, "bb_upper": 105.0, "bb_mid": 101.0, "bb_lower": 97.0, "volume_ratio": 0.88, "momentum_10d": 1.1, "ma20": 101.0, "ma50": 100.2, "sparkline": [100, 100.2, 100.5, 101, 100.8, 101.2, 101.5, 101.3, 101.8, 102, 101.8, 102.2, 102, 101.8, 102.1, 101.9, 102.2, 101.8, 102, 101.5, 101.2, 101.8, 102, 101.7, 101.5, 101.8, 102, 101.7, 101.5, 101.5], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 4, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=51.8"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.0500"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": "<strong>SCB (ไทยพาณิชย์)</strong> 101.50฿ เปลี่ยนแปลงบวก 0.49% ภาพรวม<strong>ขาขึ้น</strong> — 3↑ 0↓ สัญญาณ RSI 51.8 (กลาง) · ปริมาณปกติ 0.88x · โมเมนตัม +1.1% <strong>→ Strong Buy</strong>"}, {"ticker": "CPALL", "name": "ซีพี ออลล์", "sector": "พาณิชย์", "price": 54.75, "open": 55.0, "high": 55.25, "low": 54.25, "change": -0.25, "change_pct": -0.45, "volume_k": 11200, "value_m": 613.2, "rsi": 47.3, "macd_histogram": -0.04, "bb_upper": 57.5, "bb_mid": 54.8, "bb_lower": 52.1, "volume_ratio": 1.05, "momentum_10d": -1.2, "ma20": 54.8, "ma50": 55.3, "sparkline": [56, 55.8, 55.5, 55.8, 55.5, 55.2, 55, 55.3, 55.1, 54.8, 55, 54.8, 54.5, 54.8, 55, 54.8, 54.5, 54.8, 55, 54.8, 54.5, 54.8, 55, 54.75, 54.5, 54.8, 55, 54.8, 54.5, 54.75], "verdict": "Sell", "verdict_class": "sell", "score": -3, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=47.3"}, {"type": "bearish", "label": "MACD−", "detail": "hist=-0.0400"}, {"type": "bearish", "label": "MA↓", "detail": "P<MA20<MA50"}], "summary": "<strong>CPALL (ซีพี ออลล์)</strong> 54.75฿ เปลี่ยนแปลงลบ 0.45% ภาพรวม<strong>ขาลง</strong> — 0↑ 2↓ สัญญาณ RSI 47.3 (กลาง) · ปริมาณปกติ 1.05x · โมเมนตัม -1.2% <strong>→ Sell</strong>"}, {"ticker": "PTT", "name": "ปตท", "sector": "พลังงาน", "price": 31.5, "open": 31.75, "high": 32.0, "low": 31.2, "change": -0.25, "change_pct": -0.79, "volume_k": 18500, "value_m": 582.75, "rsi": 44.2, "macd_histogram": -0.04, "bb_upper": 34.1, "bb_mid": 31.8, "bb_lower": 29.5, "volume_ratio": 0.95, "momentum_10d": -2.3, "ma20": 31.8, "ma50": 33.2, "sparkline": [34, 33.8, 33.2, 33.5, 32.8, 32.1, 31.9, 32.3, 31.7, 31.5, 31.2, 31.8, 32.1, 31.6, 31.0, 31.3, 31.7, 31.4, 31.8, 31.5, 31.2, 31.6, 31.9, 31.4, 31.1, 31.5, 31.7, 31.3, 31.6, 31.5], "verdict": "Strong Sell", "verdict_class": "strong-sell", "score": -4, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=44.2"}, {"type": "bearish", "label": "MACD−", "detail": "hist=-0.0400"}, {"type": "bearish", "label": "Mom↓", "detail": "-2.3%"}, {"type": "bearish", "label": "MA↓", "detail": "P<MA20<MA50"}], "summary": "<strong>PTT (ปตท)</strong> 31.50฿ เปลี่ยนแปลงลบ 0.79% ภาพรวม<strong>ขาลง</strong> — 0↑ 3↓ สัญญาณ RSI 44.2 (กลาง) · ปริมาณปกติ 0.95x · โมเมนตัม -2.3% <strong>→ Strong Sell</strong>"}, {"ticker": "AOT", "name": "ท่าอากาศยาน", "sector": "คมนาคม", "price": 58.25, "open": 58.75, "high": 59.0, "low": 57.8, "change": -0.5, "change_pct": -0.85, "volume_k": 9800, "value_m": 570.85, "rsi": 38.5, "macd_histogram": -0.14, "bb_upper": 62.5, "bb_mid": 59.2, "bb_lower": 55.9, "volume_ratio": 1.82, "momentum_10d": -4.1, "ma20": 59.2, "ma50": 61.5, "sparkline": [63, 62.5, 62, 61.5, 61, 60.5, 60, 59.8, 59.5, 59.2, 59, 58.8, 58.5, 58.3, 58.1, 58.5, 59, 58.8, 58.6, 58.3, 58.1, 58.4, 58.6, 58.3, 58.1, 58.4, 58.2, 58.5, 58.3, 58.25], "verdict": "Strong Sell", "verdict_class": "strong-sell", "score": -4, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=38.5"}, {"type": "bearish", "label": "MACD−", "detail": "hist=-0.1400"}, {"type": "alert", "label": "High Vol", "detail": "1.82x"}, {"type": "bearish", "label": "Mom↓", "detail": "-4.1%"}, {"type": "bearish", "label": "MA↓", "detail": "P<MA20<MA50"}], "summary": "<strong>AOT (ท่าอากาศยาน)</strong> 58.25฿ เปลี่ยนแปลงลบ 0.85% ภาพรวม<strong>ขาลง</strong> — 0↑ 3↓ สัญญาณ RSI 38.5 (กลาง) · ปริมาณสูง 1.82x · โมเมนตัม -4.1% <strong>→ Strong Sell</strong>"}, {"ticker": "TRUE", "name": "ทรู คอร์ปอเรชั่น", "sector": "โทรคมนาคม", "price": 8.35, "open": 8.5, "high": 8.55, "low": 8.3, "change": -0.15, "change_pct": -1.76, "volume_k": 52000, "value_m": 434.2, "rsi": 32.1, "macd_histogram": -0.02, "bb_upper": 9.2, "bb_mid": 8.6, "bb_lower": 8.0, "volume_ratio": 2.1, "momentum_10d": -5.9, "ma20": 8.6, "ma50": 9.1, "sparkline": [9.2, 9.1, 9, 8.9, 8.8, 8.7, 8.6, 8.5, 8.7, 8.6, 8.5, 8.4, 8.6, 8.5, 8.4, 8.5, 8.6, 8.5, 8.4, 8.3, 8.5, 8.4, 8.3, 8.5, 8.4, 8.3, 8.5, 8.4, 8.35, 8.35], "verdict": "Strong Sell", "verdict_class": "strong-sell", "score": -6, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=32.1"}, {"type": "bearish", "label": "MACD−", "detail": "hist=-0.0200"}, {"type": "alert", "label": "Vol Spike", "detail": "2.1x"}, {"type": "bearish", "label": "Mom−", "detail": "-5.9%"}, {"type": "bearish", "label": "MA↓", "detail": "P<MA20<MA50"}], "summary": "<strong>TRUE (ทรู คอร์ปอเรชั่น)</strong> 8.35฿ เปลี่ยนแปลงลบ 1.76% ภาพรวม<strong>ขาลง</strong> — 0↑ 3↓ สัญญาณ RSI 32.1 (กลาง) · ปริมาณสูงมาก 2.1x · โมเมนตัม -5.9% <strong>→ Strong Sell</strong>"}];
+const STOCKS_INITIAL = [{"ticker": "GULF", "name": "กัลฟ์", "sector": "พลังงาน", "price": 42.5, "open": 41.25, "high": 43.0, "low": 41.0, "change": 1.25, "change_pct": 3.03, "volume_k": 45000, "value_m": 1912.5, "rsi": 68.5, "macd_histogram": 0.23, "bb_upper": 43.5, "bb_mid": 40.5, "bb_lower": 37.5, "volume_ratio": 3.25, "momentum_10d": 8.3, "ma20": 40.5, "ma50": 39.2, "sparkline": [38.5, 38.8, 39, 39.2, 39.5, 39.8, 40, 40.5, 40.8, 41, 41.2, 41.5, 41.8, 42, 41.8, 42.2, 42.5, 42.8, 42.5, 42.8, 43, 42.8, 43.2, 42.9, 42.6, 42.8, 43, 42.8, 42.5, 42.5], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 7, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=68.5"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.2300"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "alert", "label": "Vol Spike", "detail": "3.25x"}, {"type": "bullish", "label": "Mom+", "detail": "+8.3%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": {"macro": {"signal": "positive", "notes": ["Sensitivity: ราคาน้ำมันโลกและนโยบาย OPEC", "Fund Flow สัญญาณเข้า — Volume 3.25x เหนือค่าเฉลี่ย"]}, "company": {"signal": "positive", "notes": ["Momentum +8.3% (10d) — สะท้อนผลประกอบการ/ข่าวบวก"]}, "price": {"signal": "bullish", "notes": ["RSI 68.5 — Neutral ไม่ extreme", "MACD Histogram บวก — Upward Momentum", "BB Position 83% — ใกล้ Upper Band (Resistance)"]}, "signal": "Strong Buy", "verdict_class": "strong-buy", "score": 7, "reasons": ["MACD บวก + Momentum +8.3% — Uptrend ต่อเนื่อง", "ราคา > MA20 > MA50 — โครงสร้าง Uptrend ชัดเจน", "Volume 3.25x — แรงซื้อ + Volume ยืนยัน"], "risk_alert": "Volume 3.25x ผิดปกติ — ความผันผวนสูง"}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 35.0, "pbv": 3.8, "div_yield": 1.1, "market_cap": 500000000000, "eps": 1.2}}, {"ticker": "KBANK", "name": "กสิกรไทย", "sector": "การเงิน", "price": 142.5, "open": 141.0, "high": 143.5, "low": 140.5, "change": 1.5, "change_pct": 1.06, "volume_k": 4200, "value_m": 598.5, "rsi": 58.3, "macd_histogram": 0.23, "bb_upper": 148.0, "bb_mid": 140.5, "bb_lower": 133.0, "volume_ratio": 1.35, "momentum_10d": 3.2, "ma20": 140.5, "ma50": 137.8, "sparkline": [137, 137.5, 138, 138.5, 139, 138.8, 139.5, 140, 139.8, 140.5, 141, 140.8, 141.5, 142, 141.8, 142.5, 143, 142.8, 143.2, 142.9, 142.5, 143, 143.5, 143.2, 142.8, 143.1, 142.9, 142.6, 143.0, 142.5], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=58.3"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.2300"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "Mom↑", "detail": "+3.2%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": {"macro": {"signal": "neutral", "notes": ["Sensitivity: นโยบายดอกเบี้ย BOT / กำไรสุทธิ NIM"]}, "company": {"signal": "positive", "notes": ["Momentum +3.2% (10d) — ทิศทางราคาเชิงบวก", "ราคาใกล้ Fair Value (MA50 ±5%)"]}, "price": {"signal": "bullish", "notes": ["RSI 58.3 — Neutral ไม่ extreme", "MACD Histogram บวก — Upward Momentum", "BB Position 63% — กลาง Band"]}, "signal": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "reasons": ["MACD บวก + Momentum +3.2% — Uptrend ต่อเนื่อง", "ราคา > MA20 > MA50 — โครงสร้าง Uptrend ชัดเจน"], "risk_alert": null}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 7.9, "pbv": 0.7, "div_yield": 4.1, "market_cap": 340000000000, "eps": 18.0}}, {"ticker": "ADVANC", "name": "AIS แอดวานซ์", "sector": "โทรคมนาคม", "price": 219.0, "open": 217.0, "high": 220.0, "low": 216.5, "change": 2.0, "change_pct": 0.92, "volume_k": 2100, "value_m": 459.9, "rsi": 62.1, "macd_histogram": 0.25, "bb_upper": 225.0, "bb_mid": 215.0, "bb_lower": 205.0, "volume_ratio": 1.15, "momentum_10d": 4.5, "ma20": 215.0, "ma50": 210.5, "sparkline": [210, 210.5, 211, 212, 213, 212.5, 213.5, 214, 215, 214.5, 215.5, 216, 217, 216.5, 217.5, 218, 217.8, 218.2, 218.5, 218.2, 217.8, 218.5, 219, 218.8, 219.2, 219.5, 219.2, 218.8, 219.3, 219.0], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=62.1"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.2500"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "Mom↑", "detail": "+4.5%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": {"macro": {"signal": "neutral", "notes": ["Sensitivity: นโยบาย 5G และการแข่งขันในตลาด"]}, "company": {"signal": "positive", "notes": ["Momentum +4.5% (10d) — ทิศทางราคาเชิงบวก", "ราคาใกล้ Fair Value (MA50 ±5%)"]}, "price": {"signal": "bullish", "notes": ["RSI 62.1 — Neutral ไม่ extreme", "MACD Histogram บวก — Upward Momentum", "BB Position 70% — กลาง Band"]}, "signal": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "reasons": ["MACD บวก + Momentum +4.5% — Uptrend ต่อเนื่อง", "ราคา > MA20 > MA50 — โครงสร้าง Uptrend ชัดเจน"], "risk_alert": null}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 21.0, "pbv": 7.5, "div_yield": 3.6, "market_cap": 650000000000, "eps": 10.4}}, {"ticker": "BDMS", "name": "กรุงเทพดุสิต", "sector": "สุขภาพ", "price": 24.1, "open": 24.0, "high": 24.4, "low": 23.9, "change": 0.1, "change_pct": 0.42, "volume_k": 8900, "value_m": 214.49, "rsi": 53.2, "macd_histogram": 0.03, "bb_upper": 25.2, "bb_mid": 23.9, "bb_lower": 22.6, "volume_ratio": 0.92, "momentum_10d": 2.1, "ma20": 23.9, "ma50": 23.5, "sparkline": [23.5, 23.6, 23.7, 23.8, 23.9, 24, 23.9, 24.1, 24, 24.2, 24.1, 24.3, 24.2, 24.4, 24.3, 24.2, 24.4, 24.3, 24.1, 24.2, 24.3, 24.1, 24.2, 24.3, 24.1, 24.2, 24.1, 24.2, 24.1, 24.1], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=53.2"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.0300"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "Mom↑", "detail": "+2.1%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": {"macro": {"signal": "neutral", "notes": ["Sensitivity: งบประมาณสาธารณสุขและ Medical Tourism"]}, "company": {"signal": "positive", "notes": ["Momentum +2.1% (10d) — ทิศทางราคาเชิงบวก", "ราคาใกล้ Fair Value (MA50 ±5%)"]}, "price": {"signal": "bullish", "notes": ["RSI 53.2 — Neutral ไม่ extreme", "MACD Histogram บวก — Upward Momentum", "BB Position 58% — กลาง Band"]}, "signal": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "reasons": ["MACD บวก + Momentum +2.1% — Uptrend ต่อเนื่อง", "ราคา > MA20 > MA50 — โครงสร้าง Uptrend ชัดเจน"], "risk_alert": null}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 27.0, "pbv": 4.5, "div_yield": 1.8, "market_cap": 380000000000, "eps": 0.9}}, {"ticker": "BBL", "name": "กรุงเทพ", "sector": "การเงิน", "price": 155.0, "open": 154.0, "high": 156.0, "low": 153.5, "change": 1.0, "change_pct": 0.65, "volume_k": 3100, "value_m": 480.5, "rsi": 55.4, "macd_histogram": 0.15, "bb_upper": 160.0, "bb_mid": 153.0, "bb_lower": 146.0, "volume_ratio": 1.1, "momentum_10d": 2.8, "ma20": 153.0, "ma50": 150.5, "sparkline": [150, 150.5, 151, 152, 152.5, 153, 152.8, 153.5, 154, 153.8, 154.5, 155, 154.8, 155.2, 155.5, 155.2, 155.8, 155.5, 155.2, 155.5, 155.8, 155.5, 155.2, 155.5, 155.8, 155.5, 155.2, 155.5, 155.2, 155.0], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=55.4"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.1500"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "Mom↑", "detail": "+2.8%"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": {"macro": {"signal": "neutral", "notes": ["Sensitivity: นโยบายดอกเบี้ย BOT / กำไรสุทธิ NIM"]}, "company": {"signal": "positive", "notes": ["Momentum +2.8% (10d) — ทิศทางราคาเชิงบวก", "ราคาใกล้ Fair Value (MA50 ±5%)"]}, "price": {"signal": "bullish", "notes": ["RSI 55.4 — Neutral ไม่ extreme", "MACD Histogram บวก — Upward Momentum", "BB Position 64% — กลาง Band"]}, "signal": "Strong Buy", "verdict_class": "strong-buy", "score": 5, "reasons": ["MACD บวก + Momentum +2.8% — Uptrend ต่อเนื่อง", "ราคา > MA20 > MA50 — โครงสร้าง Uptrend ชัดเจน"], "risk_alert": null}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 7.2, "pbv": 0.6, "div_yield": 4.4, "market_cap": 295000000000, "eps": 21.5}}, {"ticker": "SCB", "name": "ไทยพาณิชย์", "sector": "การเงิน", "price": 101.5, "open": 101.0, "high": 102.5, "low": 100.5, "change": 0.5, "change_pct": 0.49, "volume_k": 5600, "value_m": 568.4, "rsi": 51.8, "macd_histogram": 0.05, "bb_upper": 105.0, "bb_mid": 101.0, "bb_lower": 97.0, "volume_ratio": 0.88, "momentum_10d": 1.1, "ma20": 101.0, "ma50": 100.2, "sparkline": [100, 100.2, 100.5, 101, 100.8, 101.2, 101.5, 101.3, 101.8, 102, 101.8, 102.2, 102, 101.8, 102.1, 101.9, 102.2, 101.8, 102, 101.5, 101.2, 101.8, 102, 101.7, 101.5, 101.8, 102, 101.7, 101.5, 101.5], "verdict": "Strong Buy", "verdict_class": "strong-buy", "score": 4, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=51.8"}, {"type": "bullish", "label": "MACD+", "detail": "hist=0.0500"}, {"type": "bullish", "label": "BB Mid+", "detail": "เหนือ Midline"}, {"type": "bullish", "label": "MA↑", "detail": "P>MA20>MA50"}], "summary": {"macro": {"signal": "neutral", "notes": ["Sensitivity: นโยบายดอกเบี้ย BOT / กำไรสุทธิ NIM"]}, "company": {"signal": "neutral", "notes": ["ราคาใกล้ Fair Value (MA50 ±5%)"]}, "price": {"signal": "bullish", "notes": ["RSI 51.8 — Neutral ไม่ extreme", "MACD Histogram บวก — Upward Momentum", "BB Position 56% — กลาง Band"]}, "signal": "Strong Buy", "verdict_class": "strong-buy", "score": 4, "reasons": ["ราคา > MA20 > MA50 — โครงสร้าง Uptrend ชัดเจน"], "risk_alert": null}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 8.4, "pbv": 0.8, "div_yield": 5.2, "market_cap": 340000000000, "eps": 12.1}}, {"ticker": "CPALL", "name": "ซีพี ออลล์", "sector": "พาณิชย์", "price": 54.75, "open": 55.0, "high": 55.25, "low": 54.25, "change": -0.25, "change_pct": -0.45, "volume_k": 11200, "value_m": 613.2, "rsi": 47.3, "macd_histogram": -0.04, "bb_upper": 57.5, "bb_mid": 54.8, "bb_lower": 52.1, "volume_ratio": 1.05, "momentum_10d": -1.2, "ma20": 54.8, "ma50": 55.3, "sparkline": [56, 55.8, 55.5, 55.8, 55.5, 55.2, 55, 55.3, 55.1, 54.8, 55, 54.8, 54.5, 54.8, 55, 54.8, 54.5, 54.8, 55, 54.8, 54.5, 54.8, 55, 54.75, 54.5, 54.8, 55, 54.8, 54.5, 54.75], "verdict": "Sell", "verdict_class": "sell", "score": -3, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=47.3"}, {"type": "bearish", "label": "MACD−", "detail": "hist=-0.0400"}, {"type": "bearish", "label": "MA↓", "detail": "P<MA20<MA50"}], "summary": {"macro": {"signal": "neutral", "notes": ["Sensitivity: กำลังซื้อในประเทศและ Consumer Confidence"]}, "company": {"signal": "neutral", "notes": ["ราคาใกล้ Fair Value (MA50 ±5%)"]}, "price": {"signal": "bearish", "notes": ["RSI 47.3 — Neutral ไม่ extreme", "MACD Histogram ลบ — Downward Momentum", "BB Position 49% — กลาง Band"]}, "signal": "Sell", "verdict_class": "sell", "score": -3, "reasons": ["ราคา < MA20 < MA50 — โครงสร้าง Downtrend"], "risk_alert": "Double MA Bearish Cross — Downtrend ระยะกลาง"}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 24.0, "pbv": 4.0, "div_yield": 1.9, "market_cap": 490000000000, "eps": 2.3}}, {"ticker": "PTT", "name": "ปตท", "sector": "พลังงาน", "price": 31.5, "open": 31.75, "high": 32.0, "low": 31.2, "change": -0.25, "change_pct": -0.79, "volume_k": 18500, "value_m": 582.75, "rsi": 44.2, "macd_histogram": -0.04, "bb_upper": 34.1, "bb_mid": 31.8, "bb_lower": 29.5, "volume_ratio": 0.95, "momentum_10d": -2.3, "ma20": 31.8, "ma50": 33.2, "sparkline": [34, 33.8, 33.2, 33.5, 32.8, 32.1, 31.9, 32.3, 31.7, 31.5, 31.2, 31.8, 32.1, 31.6, 31.0, 31.3, 31.7, 31.4, 31.8, 31.5, 31.2, 31.6, 31.9, 31.4, 31.1, 31.5, 31.7, 31.3, 31.6, 31.5], "verdict": "Strong Sell", "verdict_class": "strong-sell", "score": -4, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=44.2"}, {"type": "bearish", "label": "MACD−", "detail": "hist=-0.0400"}, {"type": "bearish", "label": "Mom↓", "detail": "-2.3%"}, {"type": "bearish", "label": "MA↓", "detail": "P<MA20<MA50"}], "summary": {"macro": {"signal": "negative", "notes": ["Sensitivity: ราคาน้ำมันโลกและนโยบาย OPEC", "ราคา -5.1% ต่ำกว่า MA50 — cycle ระยะกลางเป็นลบ"]}, "company": {"signal": "negative", "notes": ["Momentum -2.3% (10d) — ทิศทางราคาเชิงลบ"]}, "price": {"signal": "bearish", "notes": ["RSI 44.2 — Neutral ไม่ extreme", "MACD Histogram ลบ — Downward Momentum", "BB Position 43% — กลาง Band"]}, "signal": "Strong Sell", "verdict_class": "strong-sell", "score": -4, "reasons": ["MACD ลบ + Momentum -2.3% — Downtrend ต่อเนื่อง", "ราคา < MA20 < MA50 — โครงสร้าง Downtrend"], "risk_alert": "Double MA Bearish Cross — Downtrend ระยะกลาง"}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 10.8, "pbv": 0.9, "div_yield": 5.8, "market_cap": 900000000000, "eps": 2.9}}, {"ticker": "AOT", "name": "ท่าอากาศยาน", "sector": "คมนาคม", "price": 58.25, "open": 58.75, "high": 59.0, "low": 57.8, "change": -0.5, "change_pct": -0.85, "volume_k": 9800, "value_m": 570.85, "rsi": 38.5, "macd_histogram": -0.14, "bb_upper": 62.5, "bb_mid": 59.2, "bb_lower": 55.9, "volume_ratio": 1.82, "momentum_10d": -4.1, "ma20": 59.2, "ma50": 61.5, "sparkline": [63, 62.5, 62, 61.5, 61, 60.5, 60, 59.8, 59.5, 59.2, 59, 58.8, 58.5, 58.3, 58.1, 58.5, 59, 58.8, 58.6, 58.3, 58.1, 58.4, 58.6, 58.3, 58.1, 58.4, 58.2, 58.5, 58.3, 58.25], "verdict": "Strong Sell", "verdict_class": "strong-sell", "score": -4, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=38.5"}, {"type": "bearish", "label": "MACD−", "detail": "hist=-0.1400"}, {"type": "alert", "label": "High Vol", "detail": "1.82x"}, {"type": "bearish", "label": "Mom↓", "detail": "-4.1%"}, {"type": "bearish", "label": "MA↓", "detail": "P<MA20<MA50"}], "summary": {"macro": {"signal": "negative", "notes": ["Sensitivity: การฟื้นตัวของการท่องเที่ยวและผู้โดยสาร", "ราคา -5.3% ต่ำกว่า MA50 — cycle ระยะกลางเป็นลบ"]}, "company": {"signal": "negative", "notes": ["Momentum -4.1% (10d) — ทิศทางราคาเชิงลบ"]}, "price": {"signal": "bearish", "notes": ["RSI 38.5 — Neutral ไม่ extreme", "MACD Histogram ลบ — Downward Momentum", "BB Position 36% — กลาง Band"]}, "signal": "Strong Sell", "verdict_class": "strong-sell", "score": -4, "reasons": ["MACD ลบ + Momentum -4.1% — Downtrend ต่อเนื่อง", "ราคา < MA20 < MA50 — โครงสร้าง Downtrend"], "risk_alert": "Double MA Bearish Cross — Downtrend ระยะกลาง"}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": 28.5, "pbv": 4.2, "div_yield": 1.2, "market_cap": 830000000000, "eps": 2.0}}, {"ticker": "TRUE", "name": "ทรู คอร์ปอเรชั่น", "sector": "โทรคมนาคม", "price": 8.35, "open": 8.5, "high": 8.55, "low": 8.3, "change": -0.15, "change_pct": -1.76, "volume_k": 52000, "value_m": 434.2, "rsi": 32.1, "macd_histogram": -0.02, "bb_upper": 9.2, "bb_mid": 8.6, "bb_lower": 8.0, "volume_ratio": 2.1, "momentum_10d": -5.9, "ma20": 8.6, "ma50": 9.1, "sparkline": [9.2, 9.1, 9, 8.9, 8.8, 8.7, 8.6, 8.5, 8.7, 8.6, 8.5, 8.4, 8.6, 8.5, 8.4, 8.5, 8.6, 8.5, 8.4, 8.3, 8.5, 8.4, 8.3, 8.5, 8.4, 8.3, 8.5, 8.4, 8.35, 8.35], "verdict": "Strong Sell", "verdict_class": "strong-sell", "score": -6, "signals": [{"type": "neutral", "label": "RSI Neutral", "detail": "RSI=32.1"}, {"type": "bearish", "label": "MACD−", "detail": "hist=-0.0200"}, {"type": "alert", "label": "Vol Spike", "detail": "2.1x"}, {"type": "bearish", "label": "Mom−", "detail": "-5.9%"}, {"type": "bearish", "label": "MA↓", "detail": "P<MA20<MA50"}], "summary": {"macro": {"signal": "neutral", "notes": ["Sensitivity: นโยบาย 5G และการแข่งขันในตลาด", "Fund Flow สัญญาณเข้า — Volume 2.1x เหนือค่าเฉลี่ย"]}, "company": {"signal": "negative", "notes": ["Momentum -5.9% (10d) — สะท้อนแรงขาย/ข่าวลบ"]}, "price": {"signal": "bearish", "notes": ["RSI 32.1 — Neutral ไม่ extreme", "MACD Histogram ลบ — Downward Momentum", "BB Position 29% — กลาง Band"]}, "signal": "Strong Sell", "verdict_class": "strong-sell", "score": -6, "reasons": ["MACD ลบ + Momentum -5.9% — Downtrend ต่อเนื่อง", "ราคา < MA20 < MA50 — โครงสร้าง Downtrend", "Volume 2.1x — แรงขาย + Volume ยืนยัน"], "risk_alert": "Double MA Bearish Cross — Downtrend ระยะกลาง"}, "backtest": {"win_rate": null, "trades": 0, "avg_return": null, "hold": 5}, "fundamentals": {"pe": null, "pbv": 1.6, "div_yield": 0.0, "market_cap": 290000000000, "eps": -0.3}}];
 const SECTOR_COLORS  = {"พลังงาน": "#f59e0b", "การเงิน": "#3b82f6", "คมนาคม": "#8b5cf6", "โทรคมนาคม": "#06b6d4", "พาณิชย์": "#10b981", "สุขภาพ": "#ec4899", "อสังหาฯ": "#f97316", "อุตสาหกรรม": "#64748b", "เกษตร": "#84cc16", "เทคโนโลยี": "#a855f7"};
+
+// ── 3-LAYER SUMMARY RENDERER ─────────────────────────────────
+function layerClass(sig) {
+  return {positive:'layer-pos',negative:'layer-neg',neutral:'layer-neu',bullish:'layer-bul',bearish:'layer-bea'}[sig]||'layer-neu';
+}
+function layerLabel(sig) {
+  return {positive:'▲ บวก',negative:'▼ ลบ',neutral:'— ทรงตัว',bullish:'▲ Bullish',bearish:'▼ Bearish'}[sig]||'—';
+}
+function renderSummaryHTML(sm) {
+  if (!sm || typeof sm !== 'object') return `<div class="ai-summary">${sm||''}</div>`;
+  const layers = [
+    ['🌍 Macro', sm.macro?.signal],
+    ['🏢 Company', sm.company?.signal],
+    ['📊 Price', sm.price?.signal],
+  ];
+  const layerBadges = layers.map(([lbl,sig]) =>
+    `<span class="layer-badge ${layerClass(sig)}">${lbl} ${layerLabel(sig)}</span>`
+  ).join('');
+  const reasons = (sm.reasons||[]).map(r => `<li>· ${r}</li>`).join('');
+  const risk = sm.risk_alert
+    ? `<div class="risk-alert">⚠️ Risk: ${sm.risk_alert}</div>` : '';
+  const disc = `<div class="data-disclaimer">ข้อมูลอาจล่าช้า/ประมาณการ อัปเดตทุก 15 นาที เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน</div>`;
+  return `<div class="ai-summary">
+    <div class="layer-row">${layerBadges}</div>
+    <ul class="reasons-list">${reasons}</ul>
+    ${risk}${disc}
+  </div>`;
+}
+function renderCpSummaryHTML(sm, vcol) {
+  if (!sm || typeof sm !== 'object') return `<div class="cp-summary" style="border-left-color:${vcol}">${sm||''}</div>`;
+  const layers = [
+    ['🌍 Macro', sm.macro?.signal],
+    ['🏢 Company', sm.company?.signal],
+    ['📊 Price', sm.price?.signal],
+  ];
+  const layerBadges = layers.map(([lbl,sig]) =>
+    `<span class="layer-badge ${layerClass(sig)}">${lbl} ${layerLabel(sig)}</span>`
+  ).join('');
+  const reasons = (sm.reasons||[]).map(r => `<li>· ${r}</li>`).join('');
+  const risk = sm.risk_alert
+    ? `<div class="risk-alert">⚠️ Risk: ${sm.risk_alert}</div>` : '';
+  const disc = `<div class="data-disclaimer">ข้อมูลใกล้เคียงเรียลไทม์ / อาจล่าช้า / ต้นแบบ อัปเดตทุก 15 นาที · ราคาอาจล่าช้า ไม่สมบูรณ์ หรือเปลี่ยนแปลงได้ · เพื่อการศึกษาและทดสอบตรรกะเท่านั้น ไม่ใช่คำแนะนำการลงทุน</div>`;
+  return `<div class="cp-summary" style="border-left-color:${vcol}">
+    <div class="layer-row">${layerBadges}</div>
+    <ul class="reasons-list">${reasons}</ul>
+    ${risk}${disc}
+  </div>`;
+}
+
+// ── FUNDAMENTALS + BACKTEST RENDERER ─────────────────────────
+function fmtMcap(v) {
+  if (!v) return '—';
+  if (v >= 1e12) return (v/1e12).toFixed(2)+' ลลบ.';
+  if (v >= 1e9)  return (v/1e9).toFixed(1)+' พลบ.';
+  if (v >= 1e6)  return (v/1e6).toFixed(0)+' ลบ.';
+  return v.toLocaleString();
+}
+function renderFundBT(s) {
+  const f = s.fundamentals || {};
+  const b = s.backtest || {};
+  const v = x => (x===null||x===undefined) ? '—' : x;
+  const fund = `<div class="fund-grid">
+    <div class="fund-item"><div class="fund-label">P/E</div><div class="fund-value">${v(f.pe)}</div></div>
+    <div class="fund-item"><div class="fund-label">P/BV</div><div class="fund-value">${v(f.pbv)}</div></div>
+    <div class="fund-item"><div class="fund-label">ปันผล</div><div class="fund-value" style="color:${f.div_yield>=4?'#22c55e':'#e2e8f0'}">${f.div_yield!=null?f.div_yield+'%':'—'}</div></div>
+    <div class="fund-item"><div class="fund-label">EPS</div><div class="fund-value" style="color:${f.eps>0?'#22c55e':f.eps<0?'#f87171':'#e2e8f0'}">${v(f.eps)}</div></div>
+    <div class="fund-item" style="grid-column:span 2"><div class="fund-label">Market Cap</div><div class="fund-value">${fmtMcap(f.market_cap)}</div></div>
+  </div>`;
+  let bt = '';
+  if (b.win_rate != null) {
+    const cls = b.win_rate>=55?'bt-good':b.win_rate>=45?'bt-mid':'bt-bad';
+    const arCol = b.avg_return>0?'#22c55e':'#f87171';
+    bt = `<div class="bt-box">
+      <div class="bt-rate ${cls}">${b.win_rate}%</div>
+      <div class="bt-meta">
+        <div>📈 Backtest Win Rate (สัญญาณ EMA+RSI, ถือ ${b.hold} วัน)</div>
+        <div>${b.trades} เทรด · ผลตอบแทนเฉลี่ย <span style="color:${arCol}">${b.avg_return>=0?'+':''}${b.avg_return}%</span>/เทรด</div>
+      </div>
+    </div>`;
+  } else {
+    bt = `<div class="bt-box"><div class="bt-meta">📈 Backtest: ข้อมูลไม่พอ (ต้องการ ≥40 วัน)</div></div>`;
+  }
+  return fund + bt;
+}
 
 // allStocks = single source of truth (server + custom mixed)
 let allStocks = [...STOCKS_INITIAL];
@@ -597,7 +721,8 @@ function renderCards() {
       </div>
       <div class="signals-row">${badges}</div>
       <div class="verdict-box" style="background:${vbg};border:1px solid ${vborder};color:${vtext}">${s.verdict} (score ${s.score>=0?'+':''}${s.score})</div>
-      <div class="ai-summary">${s.summary}</div>
+      ${renderFundBT(s)}
+      ${renderSummaryHTML(s.summary)}
     </div>`;
   }).join('');
 }
@@ -661,6 +786,16 @@ function openChartPane(s) {
     <div class="chart-container">
       <canvas id="historyChart"></canvas>
     </div>
+    <div class="mtf-section" id="mtfSection">
+      <div class="mtf-title">📐 Multi-Timeframe Trend <span class="mtf-conf" id="mtfConfluence">กำลังวิเคราะห์...</span></div>
+      <table class="mtf-table" id="mtfTable">
+        <thead><tr><th>TF</th><th>Trend</th><th>RSI</th><th>MACD</th><th>EMA</th></tr></thead>
+        <tbody id="mtfBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:.6rem">⏳ กำลังโหลด 5m / 15m / 30m...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    ${renderFundBT(s)}
     <div class="cp-signals">${badges}</div>
     <div class="cp-indicators">
       <div class="ohlc-item"><div class="ohlc-label">RSI(14)</div><div class="ohlc-val" style="color:${s.rsi<30?'#22c55e':s.rsi>70?'#ef4444':'#3b82f6'}">${s.rsi}</div></div>
@@ -672,13 +807,15 @@ function openChartPane(s) {
       <div class="ohlc-item"><div class="ohlc-label">Vol Ratio</div><div class="ohlc-val">${s.volume_ratio}x</div></div>
       <div class="ohlc-item"><div class="ohlc-label">Mom 10d</div><div class="ohlc-val" style="color:${s.momentum_10d>=0?'#22c55e':'#ef4444'}">${s.momentum_10d>=0?'+':''}${s.momentum_10d.toFixed(2)}%</div></div>
     </div>
-    <div class="cp-summary" style="border-left-color:${vcol}">${s.summary}</div>
+    ${renderCpSummaryHTML(s.summary, vcol)}
   `;
 
   // 30-day history chart
   drawHistoryChart(s.sparkline, s.ticker);
   // Intraday chart (fetch live)
   fetchIntradayChart(s.ticker + '.BK');
+  // Multi-timeframe trend analysis (fetch live)
+  analyzeMultiTimeframe(s.ticker + '.BK');
 }
 
 function closeChartPane() {
@@ -809,6 +946,92 @@ async function fetchIntradayChart(symbol) {
       }
     }
   });
+}
+
+// ── MULTI-TIMEFRAME TREND ANALYSIS ────────────────────────────
+// Fetch 5m / 15m / 30m candles from Yahoo and compute trend confluence
+async function fetchTF(symbol, range, interval) {
+  const urls = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`,
+    `https://corsproxy.io/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`)}`,
+  ];
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, {headers:{'Accept':'application/json'}});
+      if (!r.ok) continue;
+      const d = await r.json();
+      const res = d?.chart?.result?.[0];
+      const closes = res?.indicators?.quote?.[0]?.close?.filter(v => v != null) || [];
+      if (closes.length >= 26) return closes;
+    } catch {}
+  }
+  return null;
+}
+
+function analyzeTF(closes) {
+  const rsi = calcRSI(closes);
+  const {hist} = calcMACD(closes);
+  const ema9  = calcEMA(closes, 9);
+  const ema21 = calcEMA(closes, 21);
+  const e9 = ema9[ema9.length-1], e21 = ema21[ema21.length-1];
+  // Trend score: combine EMA cross, MACD, RSI bias
+  let score = 0;
+  if (e9 > e21) score++; else score--;
+  if (hist > 0) score++; else score--;
+  if (rsi >= 55) score++; else if (rsi <= 45) score--;
+  const trend = score >= 2 ? 'up' : score <= -2 ? 'down' : 'flat';
+  return {rsi, hist, emaCross: e9 >= e21 ? 'GC' : 'DC', trend, score};
+}
+
+async function analyzeMultiTimeframe(symbol) {
+  const body = document.getElementById('mtfBody');
+  const conf = document.getElementById('mtfConfluence');
+  if (!body) return;
+  const TFS = [
+    {label:'5m',  range:'5d',  interval:'5m'},
+    {label:'15m', range:'5d',  interval:'15m'},
+    {label:'30m', range:'1mo', interval:'30m'},
+  ];
+  const results = await Promise.all(TFS.map(tf => fetchTF(symbol, tf.range, tf.interval)));
+
+  const trendLabel = {up:'▲ ขาขึ้น', down:'▼ ขาลง', flat:'— ทรงตัว'};
+  let upCount = 0, downCount = 0, valid = 0;
+  const rows = TFS.map((tf, i) => {
+    const closes = results[i];
+    if (!closes) {
+      return `<tr><td>${tf.label}</td><td colspan="4" style="color:var(--muted)">ไม่มีข้อมูล</td></tr>`;
+    }
+    valid++;
+    const a = analyzeTF(closes);
+    if (a.trend === 'up') upCount++; else if (a.trend === 'down') downCount++;
+    const rsiCol = a.rsi < 30 ? '#22c55e' : a.rsi > 70 ? '#ef4444' : '#3b82f6';
+    const macdCol = a.hist > 0 ? '#22c55e' : '#ef4444';
+    return `<tr>
+      <td>${tf.label}</td>
+      <td><span class="mtf-trend ${a.trend}">${trendLabel[a.trend]}</span></td>
+      <td style="color:${rsiCol};font-weight:700">${a.rsi}</td>
+      <td style="color:${macdCol};font-weight:700">${a.hist>=0?'+':''}${a.hist.toFixed(3)}</td>
+      <td style="color:${a.emaCross==='GC'?'#22c55e':'#ef4444'}">${a.emaCross}</td>
+    </tr>`;
+  }).join('');
+  body.innerHTML = rows;
+
+  if (conf) {
+    if (valid === 0) {
+      conf.textContent = 'โหลดข้อมูลไม่ได้ (CORS)';
+      conf.className = 'mtf-conf mix';
+    } else if (upCount === valid) {
+      conf.textContent = `${upCount}/${valid} Bullish — สอดคล้องกันทุกกรอบ`;
+      conf.className = 'mtf-conf bull';
+    } else if (downCount === valid) {
+      conf.textContent = `${downCount}/${valid} Bearish — สอดคล้องกันทุกกรอบ`;
+      conf.className = 'mtf-conf bear';
+    } else {
+      conf.textContent = `▲${upCount} ▼${downCount} — สัญญาณผสม`;
+      conf.className = 'mtf-conf mix';
+    }
+  }
 }
 
 // ── VIEW SWITCH ───────────────────────────────────────────────
@@ -983,6 +1206,22 @@ function calcRSI(c,p=14){if(c.length<p+1)return 50;let g=0,l=0;for(let i=c.lengt
 function calcEMA(a,s){const k=2/(s+1);let e=a[0];const o=[e];for(let i=1;i<a.length;i++){e=a[i]*k+e*(1-k);o.push(e);}return o;}
 function calcMACD(c){const e12=calcEMA(c,12),e26=calcEMA(c,26);const m=e12.map((v,i)=>v-e26[i]);const sig=calcEMA(m,9);return {hist:+(m[m.length-1]-sig[sig.length-1]).toFixed(4)};}
 function calcBB(c,p=20){const s=c.slice(-p);const mn=s.reduce((a,b)=>a+b,0)/p;const std=Math.sqrt(s.reduce((a,b)=>a+(b-mn)**2,0)/p);return {upper:+(mn+2*std).toFixed(2),mid:+mn.toFixed(2),lower:+(mn-2*std).toFixed(2)};}
+function calcBacktest(closes, hold=5) {
+  if (closes.length < 40) return {win_rate:null, trades:0, avg_return:null, hold};
+  const e9 = calcEMA(closes, 9), e21 = calcEMA(closes, 21);
+  let wins=0, total=0, sum=0;
+  for (let i=25; i<closes.length-hold-1; i++) {
+    const r = calcRSI(closes.slice(0, i+1));
+    const bull = e9[i] > e21[i] && r >= 50;
+    const bear = e9[i] < e21[i] && r <= 50;
+    if (!bull && !bear) continue;
+    const fwd = (closes[i+hold]-closes[i])/closes[i]*100;
+    const dir = bull ? fwd : -fwd;
+    sum += dir; total++; if (dir > 0) wins++;
+  }
+  if (!total) return {win_rate:null, trades:0, avg_return:null, hold};
+  return {win_rate:+(wins/total*100).toFixed(1), trades:total, avg_return:+(sum/total).toFixed(2), hold};
+}
 
 async function fetchYahoo(symbol) {
   const urls = [
@@ -1051,14 +1290,34 @@ async function fetchAndMergeCustomStock(ticker) {
   let verdict='Hold', vc='hold';
   for(const[th,v,c] of vcMap){if(score>=th){verdict=v;vc=c;break;}}
 
-  const bulls=signals.filter(s=>s.type==='bullish').length;
-  const bears=signals.filter(s=>s.type==='bearish').length;
-  const trend=score>0?'ขาขึ้น':score<0?'ขาลง':'ทรงตัว';
-  const summary=`<strong>${ticker} (เพิ่มเอง)</strong> ${price.toFixed(2)}฿ `+
-    `เปลี่ยนแปลง${changePct>=0?'บวก':'ลบ'} ${Math.abs(changePct).toFixed(2)}% `+
-    `ภาพรวม<strong>${trend}</strong> — ${bulls}↑ ${bears}↓ `+
-    `RSI ${rsi} · Vol ${volRatio}x · Mom ${mom10>=0?'+':''}${mom10}% `+
-    `→ <strong>${verdict}</strong> (score ${score>=0?'+':''}${score})`;
+  // Build 3-layer summary object (mirrors Python ai_summary structure)
+  const maScore = (volRatio>2?1:volRatio<0.6?-1:0) + (price>ma50*1.05?1:price<ma50*0.95?-1:0);
+  const coScore = (mom10>5?2:mom10>2?1:mom10<-5?-2:mom10<-2?-1:0) + ((price/ma50-1)*100>15?-1:(price/ma50-1)*100<-15?1:0);
+  const prScore = score;
+  const maNote = volRatio>2?`Fund Flow เข้า — Volume ${volRatio}x`:`Volume ${volRatio}x`;
+  const coNote = mom10>2?`Momentum +${mom10}% (10d) — ทิศทางบวก`:mom10<-2?`Momentum ${mom10}% (10d) — ทิศทางลบ`:`Momentum ${mom10>=0?'+':''}${mom10}%`;
+  const prNote = rsi<30?`RSI ${rsi} Oversold`:rsi>70?`RSI ${rsi} Overbought`:`RSI ${rsi} Neutral`;
+  const reasons = [];
+  if(rsi<30) reasons.push(`RSI ${rsi} Oversold — โอกาส Rebound`);
+  else if(rsi>70) reasons.push(`RSI ${rsi} Overbought — ระวังปรับฐาน`);
+  if(macdHist>0 && mom10>2) reasons.push(`MACD บวก + Momentum +${mom10}% — Uptrend ต่อเนื่อง`);
+  else if(macdHist<0 && mom10<-2) reasons.push(`MACD ลบ + Momentum ${mom10}% — Downtrend ต่อเนื่อง`);
+  if(ma20>ma50 && price>ma20) reasons.push('ราคา > MA20 > MA50 — โครงสร้าง Uptrend');
+  else if(ma20<ma50 && price<ma20) reasons.push('ราคา < MA20 < MA50 — โครงสร้าง Downtrend');
+  if(volRatio>2) reasons.push(`Volume ${volRatio}x — ${mom10>0?'แรงซื้อ':'แรงขาย'} + Volume ยืนยัน`);
+  if(!reasons.length) reasons.push(`Signal Score ${score>=0?'+':''}${score} — ${score>0?'ภาพรวมบวก':score<0?'ภาพรวมลบ':'ทรงตัว'}`);
+  const risks=[];
+  if(rsi>75) risks.push(`RSI ${rsi} สูงมาก`);
+  if(volRatio>3) risks.push(`Volume ${volRatio}x ผิดปกติ`);
+  if(Math.abs(mom10)>10) risks.push(`Momentum ${mom10>=0?'+':''}${mom10}% Overextended`);
+  const summary = {
+    macro:   {signal: maScore>0?'positive':maScore<0?'negative':'neutral', notes:[maNote]},
+    company: {signal: coScore>0?'positive':coScore<0?'negative':'neutral', notes:[coNote]},
+    price:   {signal: prScore>0?'bullish':prScore<0?'bearish':'neutral',  notes:[prNote]},
+    signal: verdict, verdict_class: vc, score,
+    reasons: reasons.slice(0,4),
+    risk_alert: risks.length?risks.join(' · '):null,
+  };
 
   const stockData = {
     ticker, name:ticker, sector: sector || 'อื่นๆ',
@@ -1070,6 +1329,8 @@ async function fetchAndMergeCustomStock(ticker) {
     volume_ratio:volRatio, momentum_10d:mom10,
     ma20, ma50, sparkline:spark,
     verdict, verdict_class:vc, score, signals, summary,
+    backtest: calcBacktest(closes),
+    fundamentals: {pe:null,pbv:null,div_yield:null,market_cap:null,eps:null},
     is_custom: true,
   };
 
@@ -1129,14 +1390,99 @@ function renderCustomList() {
 // ── TABLE: show ✕ label for custom stocks ────────────────────
 // (ticker cell shows "เพิ่มเอง" sector tag)
 
+// ══════════════════════════════════════════════════════════════
+// 🔔 STOCK ALERT NOTIFICATION SYSTEM
+// ══════════════════════════════════════════════════════════════
+const StockAlert = {
+  config: { rsi_overbought:70, rsi_oversold:30, cooldown_ms:15*60*1000 },
+  enabled: true,
+  _lsKey: 'set_alert_cooldown_v1',
+
+  _getCooldowns() {
+    try { return JSON.parse(localStorage.getItem(this._lsKey)||'{}'); } catch { return {}; }
+  },
+  _isCooled(key) {
+    const cd = this._getCooldowns();
+    return cd[key] && (Date.now()-cd[key]) < this.config.cooldown_ms;
+  },
+  _setCooled(key) {
+    const cd = this._getCooldowns();
+    cd[key] = Date.now();
+    const now = Date.now();
+    Object.keys(cd).forEach(k => { if(now-cd[k]>7200000) delete cd[k]; });
+    localStorage.setItem(this._lsKey, JSON.stringify(cd));
+  },
+
+  async init() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') await Notification.requestPermission();
+    this._addToggleBtn();
+  },
+
+  send(ticker, title, body, type) {
+    if (!this.enabled) return;
+    if (Notification.permission !== 'granted') return;
+    const key = `${ticker}|${title}`;
+    if (this._isCooled(key)) return;
+    const icons = {
+      buy:  'https://img.icons8.com/emoji/48/green-circle-emoji.png',
+      sell: 'https://img.icons8.com/emoji/48/red-circle-emoji.png',
+      warn: 'https://img.icons8.com/emoji/48/warning.png'
+    };
+    const n = new Notification(`⚡ ${ticker} — ${title}`, { body, icon:icons[type]||icons.warn, tag:key });
+    n.onclick = () => { window.focus(); n.close(); };
+    this._setCooled(key);
+  },
+
+  check(s) {
+    const { ticker, rsi, macd_histogram:macd, verdict_class:vc, score } = s;
+    if (rsi >= this.config.rsi_overbought)
+      this.send(ticker, 'RSI Overbought ⚠️', `RSI = ${rsi} · ระวังราคาสูงเกินไป`, 'sell');
+    if (rsi <= this.config.rsi_oversold)
+      this.send(ticker, 'RSI Oversold 📉', `RSI = ${rsi} · อาจเด้งกลับ`, 'buy');
+    if (macd > 0)
+      this.send(ticker, 'MACD Bullish 🟢', `MACD Hist = +${macd} · แนวโน้มขาขึ้น`, 'buy');
+    if (macd < 0)
+      this.send(ticker, 'MACD Bearish 🔴', `MACD Hist = ${macd} · แนวโน้มขาลง`, 'sell');
+    if (vc === 'strong-buy')
+      this.send(ticker, 'Strong Buy 🟢🟢', `Score ${score>=0?'+':''}${score} · สัญญาณซื้อแรงมาก`, 'buy');
+    if (vc === 'strong-sell')
+      this.send(ticker, 'Strong Sell 🔴🔴', `Score ${score} · สัญญาณขายแรงมาก`, 'sell');
+  },
+
+  checkAll() { allStocks.forEach(s => this.check(s)); },
+
+  _addToggleBtn() {
+    if (document.getElementById('alertToggleBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'alertToggleBtn';
+    btn.className = 'refresh-btn';
+    btn.innerHTML = '🔔 Alert ON';
+    btn.title = 'เปิด/ปิด การแจ้งเตือน RSI & MACD';
+    btn.style.cssText = 'background:#052e16;color:#22c55e;border-color:#16a34a;';
+    btn.onclick = () => {
+      this.enabled = !this.enabled;
+      btn.innerHTML      = this.enabled ? '🔔 Alert ON' : '🔕 Alert OFF';
+      btn.style.background  = this.enabled ? '#052e16' : '#1c1917';
+      btn.style.color       = this.enabled ? '#22c55e' : '#6b7280';
+      btn.style.borderColor = this.enabled ? '#16a34a' : '#374151';
+    };
+    const badge = document.querySelector('.header-badge');
+    if (badge) badge.insertBefore(btn, badge.firstChild);
+  }
+};
+
 // ── INIT ──────────────────────────────────────────────────────
 renderAll();
+StockAlert.init();
+StockAlert.checkAll();
 updateRestoreBtn();
 (async function() {
   const list = getCustomList();
   for (const ticker of list) {
     await fetchAndMergeCustomStock(ticker);
   }
+  StockAlert.checkAll();
 })();
 </script>
 </body>
