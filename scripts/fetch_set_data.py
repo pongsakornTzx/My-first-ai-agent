@@ -103,6 +103,80 @@ def calc_ma(series: pd.Series, period: int) -> float:
     return round(float(val), 2)
 
 # ============================================================
+# BACKTEST — วัด win rate ของสัญญาณจากข้อมูลย้อนหลังจริง
+# ============================================================
+
+def backtest_signal(closes: list, hold: int = 5) -> dict:
+    """
+    เดินย้อนหลังในชุดราคา closes แล้วทดสอบ signal แบบง่าย (EMA9 vs EMA21 + RSI)
+    ที่ทุกจุด: ถ้าสัญญาณ Bullish/Bearish → เช็คผลตอบแทน hold วันถัดไปว่าถูกทางไหม
+    คืน win rate, จำนวนเทรด, ผลตอบแทนเฉลี่ย/เทรด
+    """
+    s = pd.Series(closes)
+    if len(s) < 40:
+        return {"win_rate": None, "trades": 0, "avg_return": None, "hold": hold}
+    ema9  = s.ewm(span=9,  adjust=False).mean()
+    ema21 = s.ewm(span=21, adjust=False).mean()
+    delta = s.diff()
+    gain  = delta.clip(lower=0).rolling(14).mean()
+    loss  = (-delta.clip(upper=0)).rolling(14).mean()
+    rs    = gain / loss.replace(0, np.nan)
+    rsi   = 100 - (100 / (1 + rs))
+
+    wins, total, rets = 0, 0, []
+    last = len(s) - hold - 1
+    for i in range(25, last):
+        r = rsi.iloc[i]
+        if pd.isna(r):
+            continue
+        bull = ema9.iloc[i] > ema21.iloc[i] and r >= 50
+        bear = ema9.iloc[i] < ema21.iloc[i] and r <= 50
+        if not (bull or bear):
+            continue
+        fwd = (s.iloc[i + hold] - s.iloc[i]) / s.iloc[i] * 100
+        directional = fwd if bull else -fwd   # กำไรเมื่อทายถูกทาง
+        rets.append(directional)
+        total += 1
+        if directional > 0:
+            wins += 1
+    if total == 0:
+        return {"win_rate": None, "trades": 0, "avg_return": None, "hold": hold}
+    return {
+        "win_rate":   round(wins / total * 100, 1),
+        "trades":     total,
+        "avg_return": round(float(np.mean(rets)), 2),
+        "hold":       hold,
+    }
+
+# ============================================================
+# FUNDAMENTALS — P/E, P/BV, ปันผล, Market Cap (yfinance .info)
+# ============================================================
+
+def fetch_fundamentals(tk) -> dict:
+    """ดึงข้อมูลพื้นฐานจาก yfinance .info (อาจช้า/ไม่ครบ → ใส่ try/except)"""
+    out = {"pe": None, "pbv": None, "div_yield": None, "market_cap": None, "eps": None}
+    try:
+        info = tk.info or {}
+        pe  = info.get("trailingPE") or info.get("forwardPE")
+        pbv = info.get("priceToBook")
+        dy  = info.get("dividendYield")
+        mc  = info.get("marketCap")
+        eps = info.get("trailingEps")
+        out["pe"]         = round(float(pe), 2) if pe else None
+        out["pbv"]        = round(float(pbv), 2) if pbv else None
+        # yfinance คืน dividendYield เป็นสัดส่วน (0.035) หรือ % แล้วแต่เวอร์ชัน → normalize
+        if dy:
+            dy = float(dy)
+            out["div_yield"] = round(dy * 100 if dy < 1 else dy, 2)
+        out["market_cap"] = int(mc) if mc else None
+        out["eps"]        = round(float(eps), 2) if eps else None
+    except Exception as e:
+        print(f"  [Fundamentals] {e}")
+    return out
+
+_EMPTY_FUNDAMENTALS = {"pe": None, "pbv": None, "div_yield": None, "market_cap": None, "eps": None}
+
+# ============================================================
 # SIGNAL ENGINE
 # ============================================================
 
@@ -336,7 +410,8 @@ def ai_summary(ticker: str, name: str, data: dict, sig: dict, sector: str = "") 
 def _build_result(ticker: str, closes: list, volumes: list,
                   opens: list, highs: list, lows: list,
                   price: float, open_p: float, high_p: float,
-                  low_p: float, vol_last: float, source: str) -> dict:
+                  low_p: float, vol_last: float, source: str,
+                  fundamentals: dict | None = None) -> dict:
     """Shared result builder from parsed OHLCV lists."""
     close_s = pd.Series(closes)
     vol_s   = pd.Series(volumes)
@@ -345,6 +420,8 @@ def _build_result(ticker: str, closes: list, volumes: list,
     change_pct  = round((change / prev) * 100, 2) if prev else 0.0
     return {
         "ticker":         ticker,
+        "backtest":       backtest_signal(closes),
+        "fundamentals":   fundamentals or dict(_EMPTY_FUNDAMENTALS),
         "price":          round(price, 2),
         "open":           round(open_p, 2),
         "high":           round(high_p, 2),
@@ -382,11 +459,13 @@ def fetch_yahoo(ticker: str) -> dict | None:
         opens_l = hist["Open"].tolist()
         highs_l = hist["High"].tolist()
         lows_l  = hist["Low"].tolist()
+        fundamentals = fetch_fundamentals(tk)
         return _build_result(
             ticker, closes, volumes, opens_l, highs_l, lows_l,
             price=closes[-1], open_p=opens_l[-1],
             high_p=highs_l[-1], low_p=lows_l[-1], vol_last=volumes[-1],
             source="Yahoo Finance (.BK)",
+            fundamentals=fundamentals,
         )
     except Exception as e:
         print(f"  [Yahoo] {ticker}: {e}")
@@ -413,11 +492,26 @@ DEMO_PRICES = {
     "BBL":    {"price":155.00,"open":154.00,"high":156.00,"low":153.50,"change":1.00,"change_pct":0.65,"volume_k":3100,"value_m":480.50,"rsi":55.4,"macd_line":0.45,"macd_signal":0.30,"macd_histogram":0.15,"bb_upper":160.0,"bb_mid":153.0,"bb_lower":146.0,"volume_ratio":1.10,"momentum_10d":2.80,"ma20":153.0,"ma50":150.5,"sparkline":[150,150.5,151,152,152.5,153,152.8,153.5,154,153.8,154.5,155,154.8,155.2,155.5,155.2,155.8,155.5,155.2,155.5,155.8,155.5,155.2,155.5,155.8,155.5,155.2,155.5,155.2,155.0]},
 }
 
+_DEMO_FUNDAMENTALS = {
+    "PTT":    {"pe":10.8,"pbv":0.9,"div_yield":5.8,"market_cap":900_000_000_000,"eps":2.9},
+    "KBANK":  {"pe":7.9, "pbv":0.7,"div_yield":4.1,"market_cap":340_000_000_000,"eps":18.0},
+    "AOT":    {"pe":28.5,"pbv":4.2,"div_yield":1.2,"market_cap":830_000_000_000,"eps":2.0},
+    "ADVANC": {"pe":21.0,"pbv":7.5,"div_yield":3.6,"market_cap":650_000_000_000,"eps":10.4},
+    "SCB":    {"pe":8.4, "pbv":0.8,"div_yield":5.2,"market_cap":340_000_000_000,"eps":12.1},
+    "CPALL":  {"pe":24.0,"pbv":4.0,"div_yield":1.9,"market_cap":490_000_000_000,"eps":2.3},
+    "GULF":   {"pe":35.0,"pbv":3.8,"div_yield":1.1,"market_cap":500_000_000_000,"eps":1.2},
+    "BDMS":   {"pe":27.0,"pbv":4.5,"div_yield":1.8,"market_cap":380_000_000_000,"eps":0.9},
+    "TRUE":   {"pe":None,"pbv":1.6,"div_yield":0.0,"market_cap":290_000_000_000,"eps":-0.3},
+    "BBL":    {"pe":7.2, "pbv":0.6,"div_yield":4.4,"market_cap":295_000_000_000,"eps":21.5},
+}
+
 def make_demo_data(ticker: str) -> dict:
     p = DEMO_PRICES.get(ticker)
     if not p:
         p = {"price":10.0,"open":10.0,"high":10.5,"low":9.8,"change":0.0,"change_pct":0.0,"volume_k":1000,"value_m":10.0,"rsi":50.0,"macd_line":0.0,"macd_signal":0.0,"macd_histogram":0.0,"bb_upper":11.0,"bb_mid":10.0,"bb_lower":9.0,"volume_ratio":1.0,"momentum_10d":0.0,"ma20":10.0,"ma50":10.0,"sparkline":[10]*30}
-    return {"ticker": ticker, **p}
+    fund = _DEMO_FUNDAMENTALS.get(ticker, dict(_EMPTY_FUNDAMENTALS))
+    bt = backtest_signal(p["sparkline"]) if len(p.get("sparkline", [])) >= 40 else {"win_rate":None,"trades":0,"avg_return":None,"hold":5}
+    return {"ticker": ticker, "fundamentals": fund, "backtest": bt, **p}
 
 # ============================================================
 # HTML GENERATOR
@@ -468,6 +562,8 @@ def build_html(stocks: list, data_source: str = "Yahoo Finance (.BK)") -> str:
             "score": g["score"],
             "signals": g["signals"],
             "summary": s["summary"],
+            "backtest": d.get("backtest", {"win_rate":None,"trades":0,"avg_return":None,"hold":5}),
+            "fundamentals": d.get("fundamentals", dict(_EMPTY_FUNDAMENTALS)),
         })
 
     stocks_json_str = json.dumps(stocks_json, ensure_ascii=False)
@@ -683,6 +779,18 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 .mtf-trend.up{{background:#052e16;color:#22c55e;}}
 .mtf-trend.down{{background:#2d0a0a;color:#f87171;}}
 .mtf-trend.flat{{background:#1c1917;color:#9ca3af;}}
+
+/* ── FUNDAMENTALS + BACKTEST ── */
+.fund-grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin:.5rem 0;}}
+.fund-item{{background:var(--surface2);border-radius:6px;padding:.4rem;text-align:center;}}
+.fund-label{{font-size:.58rem;color:var(--muted);text-transform:uppercase;}}
+.fund-value{{font-size:.82rem;font-weight:700;margin-top:1px;}}
+.bt-box{{display:flex;align-items:center;gap:.5rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.5rem .6rem;margin:.4rem 0;}}
+.bt-rate{{font-size:1.2rem;font-weight:800;}}
+.bt-meta{{font-size:.66rem;color:var(--muted);line-height:1.4;}}
+.bt-good{{color:#22c55e;}}
+.bt-mid{{color:#fbbf24;}}
+.bt-bad{{color:#f87171;}}
 
 /* ── ADD STOCK MODAL ── */
 .modal-overlay{{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;}}
@@ -949,6 +1057,42 @@ function renderCpSummaryHTML(sm, vcol) {{
   </div>`;
 }}
 
+// ── FUNDAMENTALS + BACKTEST RENDERER ─────────────────────────
+function fmtMcap(v) {{
+  if (!v) return '—';
+  if (v >= 1e12) return (v/1e12).toFixed(2)+' ลลบ.';
+  if (v >= 1e9)  return (v/1e9).toFixed(1)+' พลบ.';
+  if (v >= 1e6)  return (v/1e6).toFixed(0)+' ลบ.';
+  return v.toLocaleString();
+}}
+function renderFundBT(s) {{
+  const f = s.fundamentals || {{}};
+  const b = s.backtest || {{}};
+  const v = x => (x===null||x===undefined) ? '—' : x;
+  const fund = `<div class="fund-grid">
+    <div class="fund-item"><div class="fund-label">P/E</div><div class="fund-value">${{v(f.pe)}}</div></div>
+    <div class="fund-item"><div class="fund-label">P/BV</div><div class="fund-value">${{v(f.pbv)}}</div></div>
+    <div class="fund-item"><div class="fund-label">ปันผล</div><div class="fund-value" style="color:${{f.div_yield>=4?'#22c55e':'#e2e8f0'}}">${{f.div_yield!=null?f.div_yield+'%':'—'}}</div></div>
+    <div class="fund-item"><div class="fund-label">EPS</div><div class="fund-value" style="color:${{f.eps>0?'#22c55e':f.eps<0?'#f87171':'#e2e8f0'}}">${{v(f.eps)}}</div></div>
+    <div class="fund-item" style="grid-column:span 2"><div class="fund-label">Market Cap</div><div class="fund-value">${{fmtMcap(f.market_cap)}}</div></div>
+  </div>`;
+  let bt = '';
+  if (b.win_rate != null) {{
+    const cls = b.win_rate>=55?'bt-good':b.win_rate>=45?'bt-mid':'bt-bad';
+    const arCol = b.avg_return>0?'#22c55e':'#f87171';
+    bt = `<div class="bt-box">
+      <div class="bt-rate ${{cls}}">${{b.win_rate}}%</div>
+      <div class="bt-meta">
+        <div>📈 Backtest Win Rate (สัญญาณ EMA+RSI, ถือ ${{b.hold}} วัน)</div>
+        <div>${{b.trades}} เทรด · ผลตอบแทนเฉลี่ย <span style="color:${{arCol}}">${{b.avg_return>=0?'+':''}}${{b.avg_return}}%</span>/เทรด</div>
+      </div>
+    </div>`;
+  }} else {{
+    bt = `<div class="bt-box"><div class="bt-meta">📈 Backtest: ข้อมูลไม่พอ (ต้องการ ≥40 วัน)</div></div>`;
+  }}
+  return fund + bt;
+}}
+
 // allStocks = single source of truth (server + custom mixed)
 let allStocks = [...STOCKS_INITIAL];
 
@@ -1162,6 +1306,7 @@ function renderCards() {{
       </div>
       <div class="signals-row">${{badges}}</div>
       <div class="verdict-box" style="background:${{vbg}};border:1px solid ${{vborder}};color:${{vtext}}">${{s.verdict}} (score ${{s.score>=0?'+':''}}${{s.score}})</div>
+      ${{renderFundBT(s)}}
       ${{renderSummaryHTML(s.summary)}}
     </div>`;
   }}).join('');
@@ -1235,6 +1380,7 @@ function openChartPane(s) {{
         </tbody>
       </table>
     </div>
+    ${{renderFundBT(s)}}
     <div class="cp-signals">${{badges}}</div>
     <div class="cp-indicators">
       <div class="ohlc-item"><div class="ohlc-label">RSI(14)</div><div class="ohlc-val" style="color:${{s.rsi<30?'#22c55e':s.rsi>70?'#ef4444':'#3b82f6'}}">${{s.rsi}}</div></div>
@@ -1645,6 +1791,22 @@ function calcRSI(c,p=14){{if(c.length<p+1)return 50;let g=0,l=0;for(let i=c.leng
 function calcEMA(a,s){{const k=2/(s+1);let e=a[0];const o=[e];for(let i=1;i<a.length;i++){{e=a[i]*k+e*(1-k);o.push(e);}}return o;}}
 function calcMACD(c){{const e12=calcEMA(c,12),e26=calcEMA(c,26);const m=e12.map((v,i)=>v-e26[i]);const sig=calcEMA(m,9);return {{hist:+(m[m.length-1]-sig[sig.length-1]).toFixed(4)}};}}
 function calcBB(c,p=20){{const s=c.slice(-p);const mn=s.reduce((a,b)=>a+b,0)/p;const std=Math.sqrt(s.reduce((a,b)=>a+(b-mn)**2,0)/p);return {{upper:+(mn+2*std).toFixed(2),mid:+mn.toFixed(2),lower:+(mn-2*std).toFixed(2)}};}}
+function calcBacktest(closes, hold=5) {{
+  if (closes.length < 40) return {{win_rate:null, trades:0, avg_return:null, hold}};
+  const e9 = calcEMA(closes, 9), e21 = calcEMA(closes, 21);
+  let wins=0, total=0, sum=0;
+  for (let i=25; i<closes.length-hold-1; i++) {{
+    const r = calcRSI(closes.slice(0, i+1));
+    const bull = e9[i] > e21[i] && r >= 50;
+    const bear = e9[i] < e21[i] && r <= 50;
+    if (!bull && !bear) continue;
+    const fwd = (closes[i+hold]-closes[i])/closes[i]*100;
+    const dir = bull ? fwd : -fwd;
+    sum += dir; total++; if (dir > 0) wins++;
+  }}
+  if (!total) return {{win_rate:null, trades:0, avg_return:null, hold}};
+  return {{win_rate:+(wins/total*100).toFixed(1), trades:total, avg_return:+(sum/total).toFixed(2), hold}};
+}}
 
 async function fetchYahoo(symbol) {{
   const urls = [
@@ -1752,6 +1914,8 @@ async function fetchAndMergeCustomStock(ticker) {{
     volume_ratio:volRatio, momentum_10d:mom10,
     ma20, ma50, sparkline:spark,
     verdict, verdict_class:vc, score, signals, summary,
+    backtest: calcBacktest(closes),
+    fundamentals: {{pe:null,pbv:null,div_yield:null,market_cap:null,eps:null}},
     is_custom: true,
   }};
 
