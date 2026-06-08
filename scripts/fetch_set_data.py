@@ -701,7 +701,7 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 </div>
 
 <footer class="footer">
-  อัปเดตล่าสุด: {updated} · ข้อมูลจาก <strong>{data_source}</strong> · GitHub Actions อัปเดตทุก 30 นาที (ช่วงตลาด SET เปิด)<br>
+  อัปเดตล่าสุด: {updated} · ข้อมูลจาก <strong>{data_source}</strong> · GitHub Actions อัปเดตทุก 15 นาที (ช่วงตลาด SET เปิด)<br>
   <strong>คำเตือน:</strong> ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน
 </footer>
 
