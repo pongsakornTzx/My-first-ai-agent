@@ -2,13 +2,14 @@
 """
 SET Thailand Stock Analysis System
 Data sources (priority order):
-  1. iTick API  — api.itick.org  (ข้อมูลตรงจาก SET, ฟรี, สมัคร token ที่ itick.org)
+  1. iTick API  — api0.itick.org  (ข้อมูลตรงจาก SET, ฟรี, สมัคร token ที่ itick.org)
   2. Yahoo Finance (.BK)          — fallback อัตโนมัติถ้าไม่มี ITICK_TOKEN
   3. Demo data                    — fallback สุดท้าย (local dev / network blocked)
 """
 
 import json
 import os
+import time
 import requests as _requests
 from datetime import datetime, timezone, timedelta
 import yfinance as yf
@@ -17,7 +18,9 @@ import numpy as np
 
 # ── iTick API token (set as env var / GitHub Actions secret) ──
 ITICK_TOKEN = os.getenv("ITICK_TOKEN", "").strip()
-ITICK_BASE  = "https://api.itick.org"
+ITICK_BASE  = "https://api0.itick.org"
+# Free plan = 5 calls/min → wait 13s between each stock (2 calls × ~6.5s spacing)
+ITICK_RATE_DELAY = 13.0
 
 # ============================================================
 # WATCHLIST — read from config/watchlist.json
@@ -255,7 +258,7 @@ def _build_result(ticker: str, closes: list, volumes: list,
 # ── 1. iTick API (SET data, free token) ──────────────────────
 
 def fetch_itick(ticker: str) -> dict | None:
-    """Primary source: iTick API — 100% SET data, free tier 50 req/min."""
+    """Primary source: iTick API — 100% SET data. Free tier = 5 req/min."""
     if not ITICK_TOKEN:
         return None
     headers = {"token": ITICK_TOKEN, "Accept": "application/json"}
@@ -360,8 +363,16 @@ def fetch_yahoo(ticker: str) -> dict | None:
 
 # ── Main dispatcher (iTick → Yahoo → None) ───────────────────
 
+_itick_last_call = 0.0
+
 def fetch_stock(ticker: str) -> dict | None:
+    global _itick_last_call
     if ITICK_TOKEN:
+        # Enforce rate limit: free plan = 5 calls/min, 2 calls per ticker
+        elapsed = time.time() - _itick_last_call
+        if elapsed < ITICK_RATE_DELAY:
+            time.sleep(ITICK_RATE_DELAY - elapsed)
+        _itick_last_call = time.time()
         data = fetch_itick(ticker)
         if data:
             return data
