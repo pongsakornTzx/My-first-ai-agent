@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -n --arg branch \"$(git branch --show-current 2>/dev/null || echo unknown)\" --arg status \"$(git status --short 2>/dev/null | head -20 || echo '  (clean)')\" --arg commits \"$(git log --oneline -5 2>/dev/null | sed 's/^/  /')\" --arg files \"$(ls -1 2>/dev/null | sed 's/^/  /')\" '{systemMessage: (\"🌟 thai-stock-analyzer — Session Info\\n\\n📌 Branch: \" + $branch + \"\\n\\n📋 Git Status:\\n\" + (if $status == \"\" then \"  (clean)\" else $status end) + \"\\n\\n🕐 Recent Commits (last 5):\\n\" + $commits + \"\\n\\n📁 Root Files:\\n\" + $files)}'"
+          }
+        ]
+      }
+    ]
+  }
+}
