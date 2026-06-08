@@ -2,10 +2,10 @@ name: Update SET Stock Dashboard
 
 on:
   schedule:
-    # Every 15 minutes during Thai market hours (Mon-Fri 09:30-17:00 ICT = 02:30-10:00 UTC)
-    - cron: '*/15 2-10 * * 1-5'
-    - cron: '30 2 * * 1-5'   # 09:30 ICT
-    - cron: '0 10 * * 1-5'   # 17:00 ICT
+    # Every 5 minutes during Thai market hours (Mon-Fri 09:30-17:00 ICT = 02:30-10:00 UTC)
+    - cron: '*/5 2-10 * * 1-5'
+    - cron: '30 2 * * 1-5'   # 09:30 ICT open
+    - cron: '0 10 * * 1-5'   # 17:00 ICT close
   workflow_dispatch:
 
 permissions:
@@ -29,7 +29,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install yfinance pandas numpy
+          pip install -r requirements.txt
 
       - name: Fetch data & generate dashboard
         run: |
