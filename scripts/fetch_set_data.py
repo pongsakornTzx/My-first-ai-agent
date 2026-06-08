@@ -388,7 +388,10 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 .header-icon{{font-size:1.8rem;}}
 .header-title{{font-size:1.4rem;font-weight:800;color:#fff;}}
 .header-sub{{font-size:0.78rem;color:var(--muted);margin-top:0.15rem;}}
-.header-badge{{margin-left:auto;background:#052e16;color:#22c55e;border:1px solid #16a34a;border-radius:999px;padding:.25rem .75rem;font-size:.72rem;font-weight:700;white-space:nowrap;}}
+.header-badge{{margin-left:auto;display:flex;align-items:center;gap:.5rem;}}
+.live-badge{{background:#052e16;color:#22c55e;border:1px solid #16a34a;border-radius:999px;padding:.25rem .75rem;font-size:.72rem;font-weight:700;white-space:nowrap;}}
+.refresh-btn{{background:#1e3a5f;color:#93c5fd;border:1px solid #2563eb;border-radius:999px;padding:.25rem .75rem;font-size:.72rem;font-weight:700;white-space:nowrap;cursor:pointer;transition:background .2s;}}
+.refresh-btn:hover{{background:#2563eb;color:#fff;}}
 .pulse{{animation:pulse 2s infinite;}}
 @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.4}}}}
 
@@ -561,10 +564,43 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 .footer{{text-align:center;padding:1.5rem;color:var(--muted);font-size:.7rem;border-top:1px solid var(--border);}}
 
 @media(max-width:768px){{
-  .chart-pane.open{{width:100%;position:fixed;inset:0;z-index:200;overflow-y:auto;}}
-  .cards-grid{{grid-template-columns:1fr;padding:1rem;}}
-  .header{{padding:1rem;}}
-  .toolbar,.cat-bar,.overview-bar{{padding:.65rem 1rem;}}
+  /* Header */
+  .header{{padding:.75rem 1rem;gap:.6rem;}}
+  .header-icon{{font-size:1.4rem;}}
+  .header-title{{font-size:1.05rem;}}
+  .header-sub{{font-size:.68rem;}}
+  .live-badge{{font-size:.65rem;padding:.2rem .55rem;}}
+  .refresh-btn{{font-size:.65rem;padding:.2rem .55rem;}}
+
+  /* Bars */
+  .overview-bar{{padding:.6rem .75rem;gap:.5rem;}}
+  .ov-item{{min-width:56px;}}
+  .ov-label{{font-size:.6rem;}}
+  .ov-val{{font-size:.85rem;}}
+  .movers-bar{{font-size:.72rem;padding:.5rem .75rem;flex-wrap:wrap;gap:.3rem;}}
+  .cat-bar{{padding:.5rem .75rem;gap:.3rem;flex-wrap:wrap;}}
+  .cat-tab,.cat-all{{font-size:.7rem;padding:.2rem .5rem;}}
+
+  /* Toolbar */
+  .toolbar{{padding:.6rem .75rem;flex-direction:column;align-items:flex-start;gap:.4rem;}}
+  .view-tabs,.filter-group{{flex-wrap:wrap;gap:.25rem;}}
+  .filter-btn{{font-size:.68rem;padding:.2rem .45rem;}}
+  .add-stock-btn{{font-size:.75rem;padding:.3rem .75rem;width:100%;text-align:center;}}
+
+  /* Table — horizontal scroll */
+  .table-pane{{overflow-x:auto;-webkit-overflow-scrolling:touch;}}
+  .report-table{{min-width:640px;font-size:.72rem;}}
+  .report-table th,
+  .report-table td{{padding:.4rem .5rem;}}
+
+  /* Cards */
+  .cards-grid{{grid-template-columns:1fr;padding:.75rem;gap:.75rem;}}
+
+  /* Chart panel full-screen on mobile */
+  .chart-pane.open{{width:100%;position:fixed;inset:0;z-index:200;overflow-y:auto;border-radius:0;}}
+
+  /* Modal */
+  .modal-box{{width:95vw;max-height:90vh;}}
 }}
 </style>
 </head>
@@ -577,7 +613,10 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
     <div class="header-title">SET Thailand — AI Stock Analysis</div>
     <div class="header-sub">ระบบวิเคราะห์หุ้นไทย · Data + Signal + AI Summary</div>
   </div>
-  <div class="header-badge"><span class="pulse">●</span> Live Data</div>
+  <div class="header-badge">
+    <span class="live-badge"><span class="pulse">●</span> Live Data</span>
+    <button class="refresh-btn" onclick="refreshPage()" id="refreshBtn">⟳ Refresh</button>
+  </div>
 </header>
 
 <!-- OVERVIEW BAR -->
@@ -662,8 +701,7 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 </div>
 
 <footer class="footer">
-  อัปเดตล่าสุด: {updated} · ข้อมูลจาก <strong>{data_source}</strong> · GitHub Actions อัปเดตทุก 30 นาที (ช่วงตลาด SET เปิด)
-  &nbsp;<button onclick="refreshPage()" id="refreshBtn" style="background:#2a6496;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;margin-left:6px;">⟳ Refresh</button><br>
+  อัปเดตล่าสุด: {updated} · ข้อมูลจาก <strong>{data_source}</strong> · GitHub Actions อัปเดตทุก 30 นาที (ช่วงตลาด SET เปิด)<br>
   <strong>คำเตือน:</strong> ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน
 </footer>
 
