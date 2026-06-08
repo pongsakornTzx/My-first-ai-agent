@@ -2,25 +2,16 @@
 """
 SET Thailand Stock Analysis System
 Data sources (priority order):
-  1. iTick API  — api0.itick.org  (ข้อมูลตรงจาก SET, ฟรี, สมัคร token ที่ itick.org)
-  2. Yahoo Finance (.BK)          — fallback อัตโนมัติถ้าไม่มี ITICK_TOKEN
-  3. Demo data                    — fallback สุดท้าย (local dev / network blocked)
+  1. Yahoo Finance (.BK) — อัปเดตอัตโนมัติ ไม่ต้องตั้งค่าอะไร
+  2. Demo data           — fallback สุดท้าย (local dev / network blocked)
 """
 
 import json
 import os
-import time
-import requests as _requests
 from datetime import datetime, timezone, timedelta
 import yfinance as yf
 import pandas as pd
 import numpy as np
-
-# ── iTick API token (set as env var / GitHub Actions secret) ──
-ITICK_TOKEN = os.getenv("ITICK_TOKEN", "").strip()
-ITICK_BASE  = "https://api0.itick.org"
-# Free plan = 5 calls/min → wait 13s between each stock (2 calls × ~6.5s spacing)
-ITICK_RATE_DELAY = 13.0
 
 # ============================================================
 # WATCHLIST — read from config/watchlist.json
@@ -255,90 +246,8 @@ def _build_result(ticker: str, closes: list, volumes: list,
     }
 
 
-# ── 1. iTick API (SET data, free token) ──────────────────────
-
-def fetch_itick(ticker: str) -> dict | None:
-    """Primary source: iTick API — 100% SET data. Free tier = 5 req/min."""
-    if not ITICK_TOKEN:
-        return None
-    headers = {"token": ITICK_TOKEN, "Accept": "application/json"}
-    try:
-        # Historical daily candles (90 days)
-        r = _requests.get(
-            f"{ITICK_BASE}/stock/kline",
-            params={"region": "TH", "code": ticker, "interval": "D", "limit": 90},
-            headers=headers, timeout=15,
-        )
-        if r.status_code != 200:
-            print(f"  [iTick] {ticker}: HTTP {r.status_code}")
-            return None
-        body = r.json()
-        if body.get("code") != 0:
-            print(f"  [iTick] {ticker}: API error {body.get('msg','')}")
-            return None
-
-        raw = body.get("data", [])
-        # Handle both formats: list-of-dicts {t,o,h,l,c,v} or list-of-lists [t,o,h,l,c,v]
-        closes, volumes, opens_l, highs_l, lows_l = [], [], [], [], []
-        for item in raw:
-            if isinstance(item, dict):
-                opens_l.append(float(item.get("o") or 0))
-                highs_l.append(float(item.get("h") or 0))
-                lows_l.append(float(item.get("l") or 0))
-                closes.append(float(item.get("c") or 0))
-                volumes.append(float(item.get("v") or 0))
-            elif isinstance(item, (list, tuple)) and len(item) >= 6:
-                opens_l.append(float(item[1]))
-                highs_l.append(float(item[2]))
-                lows_l.append(float(item[3]))
-                closes.append(float(item[4]))
-                volumes.append(float(item[5]))
-
-        closes  = [c for c in closes  if c > 0]
-        volumes = [v for v in volumes if v >= 0]
-        if len(closes) < 20:
-            print(f"  [iTick] {ticker}: insufficient candles ({len(closes)})")
-            return None
-
-        # Latest quote (for intraday price update)
-        price   = closes[-1]
-        open_p  = opens_l[-1] if opens_l else price
-        high_p  = highs_l[-1] if highs_l else price
-        low_p   = lows_l[-1]  if lows_l  else price
-        vol_last = volumes[-1] if volumes else 0
-
-        try:
-            r2 = _requests.get(
-                f"{ITICK_BASE}/stock/tick",
-                params={"region": "TH", "code": ticker},
-                headers=headers, timeout=10,
-            )
-            if r2.status_code == 200:
-                q = r2.json()
-                if q.get("code") == 0:
-                    tick = (q.get("data") or {}).get(ticker, {})
-                    if tick.get("ld"): price   = float(tick["ld"])
-                    if tick.get("o"):  open_p  = float(tick["o"])
-                    if tick.get("h"):  high_p  = float(tick["h"])
-                    if tick.get("l"):  low_p   = float(tick["l"])
-                    if tick.get("v"):  vol_last = float(tick["v"])
-        except Exception:
-            pass  # quote enrichment is best-effort
-
-        return _build_result(ticker, closes, volumes,
-                             opens_l, highs_l, lows_l,
-                             price, open_p, high_p, low_p, vol_last,
-                             source="SET (iTick)")
-
-    except Exception as e:
-        print(f"  [iTick] {ticker}: {e}")
-        return None
-
-
-# ── 2. Yahoo Finance (fallback) ───────────────────────────────
-
 def fetch_yahoo(ticker: str) -> dict | None:
-    """Fallback source: Yahoo Finance (.BK) ~85-92% accuracy."""
+    """Yahoo Finance (.BK) — primary data source."""
     symbol = f"{ticker}.BK"
     try:
         tk   = yf.Ticker(symbol)
@@ -361,22 +270,7 @@ def fetch_yahoo(ticker: str) -> dict | None:
         return None
 
 
-# ── Main dispatcher (iTick → Yahoo → None) ───────────────────
-
-_itick_last_call = 0.0
-
 def fetch_stock(ticker: str) -> dict | None:
-    global _itick_last_call
-    if ITICK_TOKEN:
-        # Enforce rate limit: free plan = 5 calls/min, 2 calls per ticker
-        elapsed = time.time() - _itick_last_call
-        if elapsed < ITICK_RATE_DELAY:
-            time.sleep(ITICK_RATE_DELAY - elapsed)
-        _itick_last_call = time.time()
-        data = fetch_itick(ticker)
-        if data:
-            return data
-        print(f"  [WARN] iTick failed for {ticker}, falling back to Yahoo Finance")
     return fetch_yahoo(ticker)
 
 # ============================================================
@@ -1478,10 +1372,7 @@ renderAll();
 
 def main():
     WATCHLIST_NOW = load_watchlist()
-    if ITICK_TOKEN:
-        print(f"SET Thailand Stock Analysis — {len(WATCHLIST_NOW)} stocks  [Primary: iTick API (SET)]")
-    else:
-        print(f"SET Thailand Stock Analysis — {len(WATCHLIST_NOW)} stocks  [Primary: Yahoo Finance | Set ITICK_TOKEN for SET data]")
+    print(f"SET Thailand Stock Analysis — {len(WATCHLIST_NOW)} stocks  [Source: Yahoo Finance (.BK)]")
 
     stocks = []
     sources_used: set[str] = set()
@@ -1503,9 +1394,7 @@ def main():
     stocks.sort(key=lambda s: s["sig"]["score"], reverse=True)
 
     # Determine displayed data source label
-    if "SET (iTick)" in sources_used:
-        src_label = "SET Thailand (iTick API) ✓"
-    elif "Yahoo Finance (.BK)" in sources_used:
+    if "Yahoo Finance (.BK)" in sources_used:
         src_label = "Yahoo Finance (.BK)"
     else:
         src_label = "Demo Data"

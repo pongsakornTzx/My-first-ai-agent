@@ -29,11 +29,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install yfinance pandas numpy requests
+          pip install yfinance pandas numpy
 
       - name: Fetch data & generate dashboard
-        env:
-          ITICK_TOKEN: ${{ secrets.ITICK_TOKEN }}
         run: |
           python scripts/fetch_set_data.py
 
