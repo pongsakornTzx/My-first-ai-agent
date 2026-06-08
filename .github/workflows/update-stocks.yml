@@ -4,22 +4,16 @@ on:
   schedule:
     # Every 30 minutes during Thai market hours (Mon-Fri 09:30-17:00 ICT = 02:30-10:00 UTC)
     - cron: '*/30 2-10 * * 1-5'
-    # Also run once at market open and close
     - cron: '30 2 * * 1-5'   # 09:30 ICT
     - cron: '0 10 * * 1-5'   # 17:00 ICT
-  workflow_dispatch:           # Allow manual trigger from GitHub UI
+  workflow_dispatch:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -43,7 +37,7 @@ jobs:
         run: |
           python scripts/fetch_set_data.py
 
-      - name: Commit updated index.html back to repo
+      - name: Commit and push updated index.html
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -54,12 +48,3 @@ jobs:
             git commit -m "auto: update SET dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
             git push
           fi
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-
-      - name: Deploy to GitHub Pages
-        id: deploy
-        uses: actions/deploy-pages@v4
