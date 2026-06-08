@@ -288,8 +288,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-s
     <div class="header-sub">ระบบวิเคราะห์หุ้นไทย · Data + Signal + AI Summary</div>
   </div>
   <div class="header-badge">
-    <span class="live-badge"><span class="pulse">●</span> Live Data</span>
-    <button class="refresh-btn" onclick="refreshPage()" id="refreshBtn">⟳ Refresh</button>
+    <span class="live-badge"><span class="pulse" id="liveDot">●</span> <span id="liveLabel">Live Data</span></span>
+    <span id="lastUpdated" style="font-size:.68rem;color:#6b7280;"></span>
+    <button class="refresh-btn" onclick="refreshLive()" id="refreshBtn">🔄 Refresh Live</button>
   </div>
 </header>
 
@@ -1089,12 +1090,124 @@ function closeModal() {
   document.getElementById('tickerInput').value = '';
   document.getElementById('suggestions').innerHTML = '';
 }
-function refreshPage() {
+// ── LIVE BACKEND CONFIG ──────────────────────────────────────
+// Set BACKEND_URL to your Vercel deployment URL after deploying.
+// Leave empty ('') to use static data only.
+const BACKEND_URL = '';  // e.g. 'https://thai-stock-analyzer.vercel.app'
+
+function _fmtTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.';
+  } catch { return ''; }
+}
+
+async function _fetchJSON(url) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+async function fetchLiveData(ticker) {
+  if (!BACKEND_URL) return null;
+  const base = BACKEND_URL.replace(/\/$/, '');
+  const [quote, ind] = await Promise.allSettled([
+    _fetchJSON(`${base}/api/quote/${ticker}`),
+    _fetchJSON(`${base}/api/indicators/${ticker}`),
+  ]);
+  const q = quote.status === 'fulfilled' ? quote.value : null;
+  const i = ind.status === 'fulfilled' ? ind.value : null;
+  if (!q && !i) return null;
+  return { quote: q, indicators: i };
+}
+
+function applyLiveUpdates(liveMap) {
+  let updated = 0;
+  allStocks = allStocks.map(s => {
+    const live = liveMap[s.ticker];
+    if (!live) return s;
+    const q = live.quote;
+    const ind = live.indicators;
+    updated++;
+    return {
+      ...s,
+      ...(q ? {
+        price: q.price,
+        change: q.change,
+        change_pct: q.change_pct,
+        high: q.day_high,
+        low: q.day_low,
+      } : {}),
+      ...(ind ? {
+        rsi: ind.rsi,
+        macd_histogram: ind.macd_histogram,
+        bb_upper: ind.bb_upper,
+        bb_mid: ind.bb_mid,
+        bb_lower: ind.bb_lower,
+        ma20: ind.ma20,
+        ma50: ind.ma50,
+        volume_ratio: ind.volume_ratio,
+        momentum_10d: ind.momentum_10d,
+      } : {}),
+    };
+  });
+  return updated;
+}
+
+async function refreshLive() {
   const btn = document.getElementById('refreshBtn');
+  const dot = document.getElementById('liveDot');
+  const label = document.getElementById('liveLabel');
+  const ts = document.getElementById('lastUpdated');
+
   btn.textContent = '⟳ กำลังโหลด...';
   btn.disabled = true;
-  window.location.reload(true);
+
+  if (!BACKEND_URL) {
+    // No backend configured — fall back to page reload
+    window.location.reload(true);
+    return;
+  }
+
+  try {
+    dot.style.color = '#f59e0b';
+    label.textContent = 'กำลังอัปเดต...';
+
+    const tickers = allStocks.map(s => s.ticker);
+    const results = await Promise.allSettled(
+      tickers.map(t => fetchLiveData(t))
+    );
+
+    const liveMap = {};
+    tickers.forEach((t, i) => {
+      if (results[i].status === 'fulfilled' && results[i].value) {
+        liveMap[t] = results[i].value;
+      }
+    });
+
+    const n = applyLiveUpdates(liveMap);
+    renderAll();
+    refreshOverview();
+    refreshMovers();
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false });
+    ts.textContent = `อัปเดต ${timeStr} น.`;
+    dot.style.color = '#22c55e';
+    label.textContent = 'Live Data';
+    btn.textContent = `🔄 Refresh Live (${n} หุ้น)`;
+  } catch (err) {
+    console.warn('Live fetch failed, reloading:', err);
+    dot.style.color = '#ef4444';
+    label.textContent = 'Error';
+    ts.textContent = 'โหลดข้อมูลไม่ได้';
+    btn.textContent = '🔄 Refresh Live';
+  } finally {
+    btn.disabled = false;
+  }
 }
+
+function refreshPage() { refreshLive(); }
 
 // ── LOCALSTORAGE WATCHLIST ────────────────────────────────────
 const LS_KEY = 'set_custom_watchlist_v2';
