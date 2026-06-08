@@ -662,7 +662,8 @@ body{{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,sans-
 </div>
 
 <footer class="footer">
-  อัปเดตล่าสุด: {updated} · ข้อมูลจาก <strong>{data_source}</strong> · GitHub Actions อัปเดตทุก 30 นาที (ช่วงตลาด SET เปิด)<br>
+  อัปเดตล่าสุด: {updated} · ข้อมูลจาก <strong>{data_source}</strong> · GitHub Actions อัปเดตทุก 30 นาที (ช่วงตลาด SET เปิด)
+  &nbsp;<button onclick="refreshPage()" id="refreshBtn" style="background:#2a6496;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;margin-left:6px;">⟳ Refresh</button><br>
   <strong>คำเตือน:</strong> ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำการลงทุน
 </footer>
 
@@ -1189,6 +1190,12 @@ function closeModal() {{
   document.getElementById('tickerInput').value = '';
   document.getElementById('suggestions').innerHTML = '';
 }}
+function refreshPage() {{
+  const btn = document.getElementById('refreshBtn');
+  btn.textContent = '⟳ กำลังโหลด...';
+  btn.disabled = true;
+  window.location.reload(true);
+}}
 
 // ── LOCALSTORAGE WATCHLIST ────────────────────────────────────
 const LS_KEY = 'set_custom_watchlist_v2';
@@ -1397,7 +1404,7 @@ def main():
     if "Yahoo Finance (.BK)" in sources_used:
         src_label = "Yahoo Finance (.BK)"
     else:
-        src_label = "Demo Data"
+        src_label = "Yahoo Finance (.BK) — ข้อมูลสาธิต (เครือข่ายไม่พร้อม)"
 
     print(f"\nBuilding HTML ({src_label}) for {len(stocks)} stocks...")
     html = build_html(stocks, data_source=src_label)
