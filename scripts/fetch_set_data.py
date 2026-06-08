@@ -1404,7 +1404,7 @@ def main():
     if "Yahoo Finance (.BK)" in sources_used:
         src_label = "Yahoo Finance (.BK)"
     else:
-        src_label = "Yahoo Finance (.BK) — ข้อมูลสาธิต (เครือข่ายไม่พร้อม)"
+        src_label = "ข้อมูลสาธิต · รอ GitHub Actions อัปเดต (จ-ศ 09:30–17:00 ทุก 30 นาที)"
 
     print(f"\nBuilding HTML ({src_label}) for {len(stocks)} stocks...")
     html = build_html(stocks, data_source=src_label)
