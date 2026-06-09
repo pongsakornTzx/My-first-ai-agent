@@ -1,14 +1,9 @@
 {
   "version": 2,
   "framework": null,
-  "installCommand": "echo 'skip'",
-  "buildCommand": "echo 'skip'",
+  "buildCommand": "echo ok",
+  "installCommand": "echo ok",
   "outputDirectory": ".",
-  "functions": {
-    "api/*.py": {
-      "runtime": "python3.9"
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
