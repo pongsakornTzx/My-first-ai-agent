@@ -1,4 +1,9 @@
 {
+  "version": 2,
+  "framework": null,
+  "installCommand": "echo 'skip npm install — static site'",
+  "buildCommand": "echo 'no build — serving static index.html'",
+  "outputDirectory": ".",
   "functions": {
     "api/**/*.py": {
       "runtime": "python3.12",
