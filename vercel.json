@@ -7,6 +7,9 @@
   "functions": {
     "api/**/*.py": {
       "maxDuration": 30
+    },
+    "api/*.py": {
+      "maxDuration": 30
     }
   },
   "headers": [
