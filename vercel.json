@@ -1,15 +1,12 @@
 {
   "version": 2,
   "framework": null,
-  "installCommand": "echo 'skip npm install — static site'",
-  "buildCommand": "echo 'no build — serving static index.html'",
+  "installCommand": "echo 'skip'",
+  "buildCommand": "echo 'skip'",
   "outputDirectory": ".",
   "functions": {
-    "api/**/*.py": {
-      "maxDuration": 30
-    },
     "api/*.py": {
-      "maxDuration": 30
+      "runtime": "python3.9"
     }
   },
   "headers": [
