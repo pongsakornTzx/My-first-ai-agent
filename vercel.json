@@ -6,7 +6,6 @@
   "outputDirectory": ".",
   "functions": {
     "api/**/*.py": {
-      "runtime": "python3.12",
       "maxDuration": 30
     }
   },
