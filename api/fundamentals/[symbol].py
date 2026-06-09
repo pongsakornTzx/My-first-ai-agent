@@ -64,9 +64,15 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        symbol = self.path.strip("/").split("/")[-1].upper()
+        from urllib.parse import urlparse, parse_qs
+        parsed = urlparse(self.path)
+        parts = [p for p in parsed.path.strip("/").split("/") if p]
+        symbol = parts[-1].upper() if parts else ""
         if not symbol or not symbol.isalpha():
-            self._json(400, {"error": "invalid symbol"})
+            qs = parse_qs(parsed.query)
+            symbol = (qs.get("symbol", [""])[0] or "").upper()
+        if not symbol or not symbol.isalpha():
+            self._json(400, {"error": "invalid symbol", "path": self.path})
             return
         try:
             if not YF_OK:
